@@ -6,7 +6,7 @@
 	url = https://github.com/Azure/iot-plugandplay-models
 [submodule "external/chariott"]
 	path = external/chariott
-	url = https://github.com/eclipse-chariott/chariott
+	url = https://github.com/Mobica/EclipseSDV_chariott
 [submodule "external/agemo"]
 	path = external/agemo
-	url = https://github.com/eclipse-chariott/Agemo
+	url = https://github.com/Mobica/EclipseSDV_Agemo
