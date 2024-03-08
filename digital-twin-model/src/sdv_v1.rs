@@ -520,7 +520,7 @@ pub mod seat_massager {
 }
 
 pub mod vehicle {
-    pub const ID: &str = "dtmi:sdv:vehcile;1";
+    pub const ID: &str = "dtmi:sdv:vehicle;1";
     pub const DESCRIPTION: &str = "Vehicle Interface.";
 
     pub mod vehicle_identification {
@@ -550,5 +550,12 @@ pub mod vehicle {
             pub model_id: String,
             pub vin: crate::sdv_v1::vehicle::vehicle_identification::vin::TYPE,
         }
+    }
+    pub mod vehicle_speed {
+        pub const ID: &str = "dtmi:sdv:vehicle:vehicle_speed;1";
+        pub const NAME: &str = "vehicle_speed.";
+        pub const DESCRIPTION: &str = "Vehicle speed";
+
+        pub type TYPE = i32;
     }
 }
