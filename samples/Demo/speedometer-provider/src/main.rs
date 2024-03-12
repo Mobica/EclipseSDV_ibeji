@@ -6,7 +6,7 @@ mod provider_impl;
 
 use std::net::SocketAddr;
 
-use digital_twin_model::sdv_v0 as sdv;
+use digital_twin_model::sdv_v1 as sdv;
 use env_logger::{Builder, Target};
 use log::{debug, info, warn, LevelFilter};
 use samples_common::constants::{digital_twin_operation, digital_twin_protocol};
@@ -25,12 +25,12 @@ use tonic::transport::Server;
 
 use crate::provider_impl::ProviderImpl;
 
-/// Register the ambient air temperature property's endpoint.
+/// Register the vehicle speed property's endpoint.
 ///
 /// # Arguments
 /// * `invehicle_digital_twin_uri` - The In-Vehicle Digital Twin URI.
 /// * `provider_uri` - The provider's URI.
-async fn register_ambient_air_temperature(
+async fn register_vehicle_speed(
     invehicle_digital_twin_uri: &str,
     provider_uri: &str,
 ) -> Result<(), Status> {
@@ -42,9 +42,9 @@ async fn register_ambient_air_temperature(
     };
 
     let entity_access_info = EntityAccessInfo {
-        name: sdv::hvac::ambient_air_temperature::NAME.to_string(),
-        id: sdv::hvac::ambient_air_temperature::ID.to_string(),
-        description: sdv::hvac::ambient_air_temperature::DESCRIPTION.to_string(),
+        name: sdv::vehicle::vehicle_speed::NAME.to_string(),
+        id: sdv::vehicle::vehicle_speed::ID.to_string(),
+        description: sdv::vehicle::vehicle_speed::DESCRIPTION.to_string(),
         endpoint_info_list: vec![endpoint_info],
     };
 
@@ -58,43 +58,42 @@ async fn register_ambient_air_temperature(
     Ok(())
 }
 
-/// Start the ambient air temperature data stream.
+/// Start the vehicle speed data stream.
 ///
 /// # Arguments
 /// `min_interval_ms` - minimum frequency for data stream.
-fn start_ambient_air_temperature_data_stream(min_interval_ms: u64) -> watch::Receiver<i32> {
-    debug!("Starting the Provider's ambient air temperature data stream.");
-    let mut temperature: i32 = 75;
-    let (sender, reciever) = watch::channel(temperature);
+fn start_vehicle_speed_data_stream(min_interval_ms: u64) -> watch::Receiver<i32> {
+    debug!("Starting the Provider'vehicle speed data stream.");
+    let mut vehicle_speed: i32 = 75;
+    let (sender, reciever) = watch::channel(vehicle_speed);
     tokio::spawn(async move {
-        let mut is_temperature_increasing: bool = true;
+        let mut is_speed_increasing: bool = true;
         loop {
             debug!(
-                "Recording new value for {} of {temperature}",
-                sdv::hvac::ambient_air_temperature::ID
+                "Recording new value for {} of {vehicle_speed}",
+                sdv::vehicle::vehicle_speed::ID
             );
 
-            if let Err(err) = sender.send(temperature) {
+            if let Err(err) = sender.send(vehicle_speed) {
                 warn!("Failed to get new value due to '{err:?}'");
                 break;
             }
 
             debug!("Completed the publish request");
 
-            // Calculate the new temperature.
-            // It bounces back and forth between 65 and 85 degrees.
-            if is_temperature_increasing {
-                if temperature == 85 {
-                    is_temperature_increasing = false;
-                    temperature -= 1;
+            // TODO get vehicle data from CAN            
+            if is_speed_increasing {
+                if vehicle_speed == 100 {
+                    is_speed_increasing = false;
+                    vehicle_speed -= 1;
                 } else {
-                    temperature += 1;
+                    vehicle_speed += 1;
                 }
-            } else if temperature == 65 {
-                is_temperature_increasing = true;
-                temperature += 1;
+            } else if vehicle_speed == 1 {
+                is_speed_increasing = true;
+                vehicle_speed += 1;
             } else {
-                temperature -= 1;
+                vehicle_speed -= 1;
             }
 
             sleep(Duration::from_millis(min_interval_ms)).await;
@@ -124,7 +123,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Start mock data stream.
     let min_interval_ms = 1000; // 1 second
-    let data_stream = start_ambient_air_temperature_data_stream(min_interval_ms);
+    let data_stream = start_vehicle_speed_data_stream(min_interval_ms);
 
     // Setup provider management cb endpoint.
     let provider = ProviderImpl::new(data_stream, min_interval_ms);
@@ -136,7 +135,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     debug!("Sending a register request to the In-Vehicle Digital Twin Service URI {invehicle_digital_twin_uri}");
     retry_async_based_on_status(30, Duration::from_secs(1), || {
-        register_ambient_air_temperature(&invehicle_digital_twin_uri, &provider_uri)
+        register_vehicle_speed(&invehicle_digital_twin_uri, &provider_uri)
     })
     .await?;
 
@@ -144,7 +143,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     signal::ctrl_c().await.expect("Failed to listen for control-c event");
 
-    info!("The Provider has completed.");
+    info!("The Provider has been completed.");
 
     Ok(())
 }

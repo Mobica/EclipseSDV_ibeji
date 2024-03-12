@@ -522,6 +522,14 @@ pub mod seat_massager {
 pub mod vehicle {
     pub const ID: &str = "dtmi:sdv:vehicle;1";
     pub const DESCRIPTION: &str = "Vehicle Interface.";
+    
+    pub mod vehicle_speed {
+        pub const ID: &str = "dtmi:sdv:vehicle:vehicle_speed;1";
+        pub const NAME: &str = "vehicle_speed";
+        pub const DESCRIPTION: &str = "Vehicle speed";
+
+        pub type TYPE = i32;
+    }
 
     pub mod vehicle_identification {
         pub const ID: &str = "dtmi:sdv:vehicle:vehicle_identification;1";
@@ -535,6 +543,8 @@ pub mod vehicle {
 
             pub type TYPE = String;
         }
+
+
 
         #[derive(derivative::Derivative)]
         #[derivative(Default)]
@@ -551,11 +561,5 @@ pub mod vehicle {
             pub vin: crate::sdv_v1::vehicle::vehicle_identification::vin::TYPE,
         }
     }
-    pub mod vehicle_speed {
-        pub const ID: &str = "dtmi:sdv:vehicle:vehicle_speed;1";
-        pub const NAME: &str = "vehicle_speed.";
-        pub const DESCRIPTION: &str = "Vehicle speed";
 
-        pub type TYPE = i32;
-    }
 }

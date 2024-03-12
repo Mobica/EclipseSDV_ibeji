@@ -11,7 +11,7 @@ use samples_protobuf_data_access::module::managed_subscribe::v1::{
     CallbackPayload, TopicManagementRequest, TopicManagementResponse,
 };
 
-use digital_twin_model::{sdv_v0 as sdv, Metadata};
+use digital_twin_model::{sdv_v1 as sdv, Metadata};
 use log::{debug, info, warn};
 use paho_mqtt as mqtt;
 use parking_lot::RwLock;
@@ -22,12 +22,12 @@ use tokio::sync::{mpsc, watch};
 use tokio::time::{sleep, Duration};
 use tonic::{Request, Response, Status};
 
-const MQTT_CLIENT_ID: &str = "managed-subscribe-publisher";
+const MQTT_CLIENT_ID: &str = "Speedometer mood lightning publisher";
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Property {
-    #[serde(rename = "AmbientAirTemperature")]
-    ambient_air_temperature: sdv::hvac::ambient_air_temperature::TYPE,
+    #[serde(rename = "VehicleSpeed")]
+    vehicle_speed: sdv::vehicle::vehicle_speed::TYPE,
     #[serde(rename = "$metadata")]
     metadata: Metadata,
 }
@@ -55,14 +55,14 @@ pub struct ProviderImpl {
     entity_map: Arc<RwLock<HashMap<String, Vec<TopicInfo>>>>,
 }
 
-/// Create the JSON for the ambient air temperature property.
+/// Create the JSON for the vehicle speed property.
 ///
 /// # Arguments
-/// * `ambient_air_temperature` - The ambient air temperature value.
-fn create_property_json(ambient_air_temperature: i32) -> String {
-    let metadata = Metadata { model: sdv::hvac::ambient_air_temperature::ID.to_string() };
+/// * `vehicle_speed` - The vehicle speed value.
+fn create_property_json(vehicle_speed: i32) -> String {
+    let metadata = Metadata { model: sdv::vehicle::vehicle_speed::ID.to_string() };
 
-    let property: Property = Property { ambient_air_temperature, metadata };
+    let property: Property = Property { vehicle_speed, metadata };
 
     serde_json::to_string(&property).unwrap()
 }
@@ -113,7 +113,7 @@ impl ProviderImpl {
         let mut entity_map = HashMap::new();
 
         // Insert entry for entity id's associated with provider.
-        entity_map.insert(sdv::hvac::ambient_air_temperature::ID.to_string(), Vec::new());
+        entity_map.insert(sdv::vehicle::vehicle_speed::ID.to_string(), Vec::new());
 
         // Create new instance.
         ProviderImpl { data_stream, min_interval_ms, entity_map: Arc::new(RwLock::new(entity_map)) }
@@ -173,7 +173,7 @@ impl ProviderImpl {
                 // Publish message to broker.
                 info!(
                     "Publish to {topic} for {} with value {data}",
-                    sdv::hvac::ambient_air_temperature::NAME
+                    sdv::vehicle::vehicle_speed::NAME
                 );
 
                 if let Err(err) = publish_message(&broker_uri, &topic, &content) {

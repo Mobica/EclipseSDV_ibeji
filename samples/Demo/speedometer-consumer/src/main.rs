@@ -4,7 +4,7 @@
 
 use std::env;
 
-use digital_twin_model::sdv_v0 as sdv;
+use digital_twin_model::sdv_v1 as sdv;
 use env_logger::{Builder, Target};
 use log::{debug, info, LevelFilter};
 use paho_mqtt as mqtt;
@@ -24,14 +24,14 @@ use tonic::{Request, Status};
 use uuid::Uuid;
 
 const FREQUENCY_MS_FLAG: &str = "freq_ms=";
-const MQTT_CLIENT_ID: &str = "managed-subscribe-consumer";
+const MQTT_CLIENT_ID: &str = "Speedometer mood lightning-consumer";
 
 /// Get subscription information from managed subscribe endpoint.
 ///
 /// # Arguments
 /// * `managed_subscribe_uri` - The managed subscribe URI.
 /// * `constraints` - Constraints for the managed topic.
-async fn get_ambient_air_temperature_subscription_info(
+async fn get_vehicle_speed_subscription_info(
     managed_subscribe_uri: &str,
     constraints: Vec<Constraint>,
 ) -> Result<SubscriptionInfoResponse, Status> {
@@ -41,7 +41,7 @@ async fn get_ambient_air_temperature_subscription_info(
         .map_err(|err| Status::from_error(err.into()))?;
 
     let request = Request::new(SubscriptionInfoRequest {
-        entity_id: sdv::hvac::ambient_air_temperature::ID.to_string(),
+        entity_id: sdv::vehicle::vehicle_speed::ID.to_string(),
         constraints,
     });
 
@@ -50,12 +50,12 @@ async fn get_ambient_air_temperature_subscription_info(
     Ok(response.into_inner())
 }
 
-/// Receive Ambient Air Temperature updates.
+/// Receive vehicle speed updates.
 ///
 /// # Arguments
 /// * `broker_uri` - The broker URI.
 /// * `topic` - The topic.
-async fn receive_ambient_air_temperature_updates(
+async fn receive_vehicle_speed_updates(
     broker_uri: &str,
     topic: &str,
 ) -> Result<JoinHandle<()>, String> {
@@ -66,7 +66,7 @@ async fn receive_ambient_air_temperature_updates(
         mqtt::CreateOptionsBuilder::new().server_uri(broker_uri).client_id(client_id).finalize();
 
     let client = mqtt::Client::new(create_opts)
-        .map_err(|err| format!("Failed to create the client due to '{err:?}'"))?;
+        .map_err(|err| format!("Failed to create MQTT client due to '{err:?}'"))?;
 
     let receiver = client.start_consuming();
 
@@ -131,7 +131,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Setup logging.
     Builder::new().filter(None, LevelFilter::Info).target(Target::Stdout).init();
 
-    info!("The Consumer has started.");
+    info!("Speedometer mood lightning Consumer has started.");
 
     let settings = consumer_config::load_settings();
 
@@ -156,7 +156,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Retrieve the provider URI.
     let provider_endpoint_info = discover_digital_twin_provider_using_ibeji(
         &invehicle_digital_twin_uri,
-        sdv::hvac::ambient_air_temperature::ID,
+        sdv::vehicle::vehicle_speed::ID,
         digital_twin_protocol::GRPC,
         &[digital_twin_operation::MANAGEDSUBSCRIBE.to_string()],
     )
@@ -164,7 +164,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .unwrap();
 
     let managed_subscribe_uri = provider_endpoint_info.uri;
-    info!("The Managed Subscribe URI for the AmbientAirTemperature property's provider is {managed_subscribe_uri}");
+    info!("Speedometer mood lightning URI for the Vehicle speed property's provider is {managed_subscribe_uri}");
 
     // Create constraint for the managed subscribe call.
     let frequency_constraint = Constraint {
@@ -173,7 +173,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Get the subscription information for a managed topic with constraints.
-    let subscription_info = get_ambient_air_temperature_subscription_info(
+    let subscription_info = get_vehicle_speed_subscription_info(
         &managed_subscribe_uri,
         vec![frequency_constraint],
     )
@@ -182,10 +182,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Deconstruct subscription information.
     let broker_uri = subscription_info.uri;
     let topic = subscription_info.context;
-    info!("The broker URI for the AmbientAirTemperature property's provider is {broker_uri}");
+    info!("The broker URI for the Vehicle Speed property's provider is {broker_uri}");
 
     // Subscribe to topic.
-    let sub_handle = receive_ambient_air_temperature_updates(&broker_uri, &topic)
+    let sub_handle = receive_vehicle_speed_updates(&broker_uri, &topic)
         .await
         .map_err(|err| Status::internal(format!("{err:?}")))?;
 
