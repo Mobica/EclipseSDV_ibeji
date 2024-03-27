@@ -106,6 +106,8 @@ where
 {
     let mut server: GrpcServer<Identity> = GrpcServer::new(addr);
 
+    info!("GrpcServer addr = '{addr}'.");
+
     #[cfg(feature = "managed_subscribe")]
     // (1) Adds the Managed Subscribe module to the service.
     let server = {

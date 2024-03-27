@@ -119,6 +119,8 @@ pub async fn discover_service_using_chariott(
     let mut client = ServiceRegistryClient::connect(chariott_uri.to_owned())
         .await
         .map_err(|e| Status::internal(e.to_string()))?;
+    
+    info!("ServiceRegistryClient = '{namespace}'");
 
     let request = Request::new(DiscoverRequest {
         namespace: namespace.to_string(),
@@ -134,7 +136,7 @@ pub async fn discover_service_using_chariott(
         && service.communication_reference != expected_communication_reference
     {
         Err(Status::not_found(
-            "Did not find a service in Chariott with namespace '{namespace}', name '{name}' and version {version} that has communication kind '{communication_kind} and communication_reference '{communication_reference}''",
+            "Did not find a service in Chariott with namespace '{namespace2}', name '{name}' and version {version} that has communication kind '{communication_kind} and communication_reference '{communication_reference}''",
         ))
     } else {
         Ok(service.uri)
@@ -158,7 +160,10 @@ pub async fn get_service_uri(
             service_uri
         }
         ServiceUriSource::Chariott { chariott_uri, service_identifier } => {
-            info!("Retrieving URI from Chariott.");
+            info!("Retrieving URI from Chariott for:");
+            println!("{} ,", service_identifier.namespace);
+            println!("{} ,", service_identifier.name);
+            println!("{}.", service_identifier.version);
 
             execute_with_retry(
                 30,

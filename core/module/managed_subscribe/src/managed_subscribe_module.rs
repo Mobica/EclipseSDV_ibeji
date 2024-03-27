@@ -106,6 +106,7 @@ impl ManagedSubscribeModule {
             MANAGED_SUBSCRIBE_COMMUNICATION_REFERENCE,
         )
         .await?;
+        info!("Managed Subscribe URI = '{service_uri}'");
 
         Ok(ManagedSubscribeModule {
             managed_subscribe_uri,
