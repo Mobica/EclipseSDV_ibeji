@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+// Licensed under the MIT license.msg
 // SPDX-License-Identifier: MIT
 
 use std::env;
@@ -24,7 +24,10 @@ use tonic::{Request, Status};
 use uuid::Uuid;
 
 const FREQUENCY_MS_FLAG: &str = "freq_ms=";
-const MQTT_CLIENT_ID: &str = "Speedometer mood lightning-consumer";
+const MQTT_CLIENT_ID: &str = "Speedometer_mood";
+
+const RED_RGB_COLOR: u32 = 0xFF0000;   //    rgb(255, 0, 0)
+const GREEN_RGB_COLOR: u32 = 0x008000; //	rgb(0,128,0)
 
 /// Get subscription information from managed subscribe endpoint.
 ///
@@ -48,6 +51,16 @@ async fn get_vehicle_speed_subscription_info(
     let response = client.get_subscription_info(request).await?;
 
     Ok(response.into_inner())
+}
+
+fn received_msg_handler(message_mqtt: paho_mqtt::message::Message)
+{
+    //info!("-->{}", message_mqtt.payload());
+    println!("{:02X?}", message_mqtt.payload());
+}
+
+fn print_type_of<T>(_: &T) {
+    println!("{}", std::any::type_name::<T>())
 }
 
 /// Receive vehicle speed updates.
@@ -102,7 +115,9 @@ async fn receive_vehicle_speed_updates(
     let sub_handle = tokio::spawn(async move {
         for msg in receiver.iter() {
             if let Some(msg) = msg {
-                info!("{}", msg);
+                      
+                received_msg_handler(msg);
+//                print_type_of(&msg);
             } else if !client.is_connected() {
                 if client.reconnect().is_ok() {
                     _subscribe_response = client

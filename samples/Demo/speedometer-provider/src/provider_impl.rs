@@ -22,11 +22,12 @@ use tokio::sync::{mpsc, watch};
 use tokio::time::{sleep, Duration};
 use tonic::{Request, Response, Status};
 
-const MQTT_CLIENT_ID: &str = "Speedometer mood lightning publisher";
+const MQTT_CLIENT_ID: &str = "Speedometer_mood";
+
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Property {
-    #[serde(rename = "VehicleSpeed")]
+    #[serde(rename = "VehicleSpeed")] 
     vehicle_speed: sdv::vehicle::vehicle_speed::TYPE,
     #[serde(rename = "$metadata")]
     metadata: Metadata,

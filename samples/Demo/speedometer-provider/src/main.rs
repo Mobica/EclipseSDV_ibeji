@@ -89,7 +89,7 @@ fn start_vehicle_speed_data_stream(min_interval_ms: u64) -> watch::Receiver<i32>
                 } else {
                     vehicle_speed += 1;
                 }
-            } else if vehicle_speed == 1 {
+            } else if vehicle_speed == 0 {
                 is_speed_increasing = true;
                 vehicle_speed += 1;
             } else {
@@ -124,7 +124,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Start mock data stream.
     let min_interval_ms = 1000; // 1 second
     let data_stream = start_vehicle_speed_data_stream(min_interval_ms);
-
+    info!("MST data_streamhas started.");
     // Setup provider management cb endpoint.
     let provider = ProviderImpl::new(data_stream, min_interval_ms);
 

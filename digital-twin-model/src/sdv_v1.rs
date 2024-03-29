@@ -269,6 +269,21 @@ pub mod hvac {
     }
 }
 
+pub mod dashboard {
+    pub const ID: &str = "dtmi:sdv:dashboard;1";
+    pub const DESCRIPTION: &str = "Dashboard Interface";
+
+    pub mod background_color {
+        pub const ID: &str = "dtmi:sdv:dashboard:background_rgb_color;1";
+        pub const NAME: &str = "background_rgb_color";
+        pub const DESCRIPTION: &str = "Dashboard background RGB color.";
+
+        pub type TYPE = i32;
+    }
+
+}
+
+
 pub mod obd {
     pub const ID: &str = "dtmi:sdv:obd;1";
     pub const DESCRIPTION: &str = "On-board Diagnostics Interface.";
