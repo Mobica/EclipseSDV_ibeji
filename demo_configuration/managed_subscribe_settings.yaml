@@ -1,8 +1,4 @@
 base_authority: "0.0.0.0:5010"
 managed_subscribe_uri_source:
-  Chariott:
-    chariott_uri: "http://0.0.0.0:50000"
-    service_identifier:
-      namespace: "sdv.pubsub"
-      name: "dynamic.pubsub"
-      version: "0.1.0"
+  Local:
+    service_uri: "http://0.0.0.0:50051"
