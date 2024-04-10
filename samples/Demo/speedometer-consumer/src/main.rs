@@ -22,6 +22,12 @@ use tokio::task::JoinHandle;
 use tokio::time::Duration;
 use tonic::{Request, Status};
 use uuid::Uuid;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug,Deserialize,Serialize)]
+struct DataPacket{
+    VehicleSpeed: i32,
+}
 
 const FREQUENCY_MS_FLAG: &str = "freq_ms=";
 const MQTT_CLIENT_ID: &str = "Speedometer_mood";
@@ -55,8 +61,12 @@ async fn get_vehicle_speed_subscription_info(
 
 fn received_msg_handler(message_mqtt: paho_mqtt::message::Message)
 {
-    //info!("-->{}", message_mqtt.payload());
-    println!("{:02X?}", message_mqtt.payload());
+    let payload = std::str::from_utf8(message_mqtt.payload()).unwrap();
+    let data: DataPacket = serde_json::from_str(payload).unwrap();
+
+    info!("{}", message_mqtt);  //message
+    //println!("{:02X?}", message_mqtt.payload()); // payload as hex
+    println!("received {:?}", data); //data extracted from the message
 }
 
 fn print_type_of<T>(_: &T) {
