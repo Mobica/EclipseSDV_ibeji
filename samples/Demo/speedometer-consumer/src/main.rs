@@ -2,6 +2,9 @@
 // Licensed under the MIT license.msg
 // SPDX-License-Identifier: MIT
 
+mod dashboard_update;
+use crate::dashboard_update::{update_dashboard};
+
 use std::env;
 
 use digital_twin_model::sdv_v1 as sdv;
@@ -67,6 +70,16 @@ fn received_msg_handler(message_mqtt: paho_mqtt::message::Message)
     info!("{}", message_mqtt);  //message
     //println!("{:02X?}", message_mqtt.payload()); // payload as hex
     println!("received {:?}", data); //data extracted from the message
+
+    //Inform dashboard
+    send_to_dashboard(data);
+}
+
+fn send_to_dashboard(data: DataPacket)
+{
+    unsafe{
+        dashboard_update::current_vehicle_speed = data.VehicleSpeed;
+    }
 }
 
 fn print_type_of<T>(_: &T) {
@@ -211,6 +224,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Subscribe to topic.
     let sub_handle = receive_vehicle_speed_updates(&broker_uri, &topic)
+        .await
+        .map_err(|err| Status::internal(format!("{err:?}")))?;
+
+    //update_dashboard
+    let _ws_handle = update_dashboard()
         .await
         .map_err(|err| Status::internal(format!("{err:?}")))?;
 
