@@ -3,11 +3,19 @@ use tokio::task::JoinHandle;
 use mio_extras::timer::Timeout;
 use ws::util::Token;
 use ws::{listen, CloseCode, Error, ErrorKind, Handler, Message, Sender, Handshake };
+use serde::{Deserialize, Serialize};
 
 const PING: Token = Token(1);
 const PING_INTERVAL: u64 = 300;
 
 pub static mut current_vehicle_speed: i32 = 0;
+
+#[derive(Debug,Deserialize,Serialize)]
+struct VehicleState{
+    speed: i32,
+    rpm: u32,
+    gear: u8
+}
 
 pub async fn update_dashboard() -> Result<JoinHandle<()>, String>
 {
@@ -37,7 +45,9 @@ pub async fn update_dashboard() -> Result<JoinHandle<()>, String>
                 // PING timeout has occured, send a msg and reschedule
                 PING => {
                     unsafe{
-                        let _ = self.out.send(Message::text(current_vehicle_speed.to_string()));
+                        let data_to_dashboard = VehicleState{speed: current_vehicle_speed, rpm: 0, gear: 0};
+                        let msg = serde_json::to_string(&data_to_dashboard).unwrap();
+                        let _ = self.out.send(Message::text(msg));
                     }
                     self.ping_timeout.take();
                     self.out.timeout(PING_INTERVAL, PING)
