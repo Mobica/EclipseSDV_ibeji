@@ -1,0 +1,9 @@
+[package]
+authors = ["Michal Bohdal <michal.bohdal@mobica.com>"]
+build = "build.rs"
+name = "led_driver"
+version = "0.1.0"
+
+[build-dependencies]
+bindgen = "*"
+cc = { workspace = true }
