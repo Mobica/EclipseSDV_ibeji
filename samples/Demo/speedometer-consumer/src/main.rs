@@ -171,6 +171,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     info!("Speedometer mood lightning Consumer has started.");
 
+    let mut panel = led_driver::init();
+    led_driver::allGreen(&mut panel);
+    std::thread::sleep(std::time::Duration::from_secs(1));
+    led_driver::allRed(&mut panel);
+
+
     let settings = consumer_config::load_settings();
 
     let invehicle_digital_twin_uri = retrieve_invehicle_digital_twin_uri(
