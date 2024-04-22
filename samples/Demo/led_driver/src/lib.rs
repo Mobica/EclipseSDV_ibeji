@@ -4,7 +4,7 @@
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
-pub fn init() -> ws2811_t {
+pub fn init(ledCount: usize) -> ws2811_t {
     let mut panel = ws2811_t {
         render_wait_time: 0,
         device: std::ptr::null_mut(),
@@ -15,7 +15,7 @@ pub fn init() -> ws2811_t {
             ws2811_channel_t {
                 gpionum: 18,
                 invert: 0,
-                count: 8,
+                count: ledCount as i32,
                 strip_type: 0x00081000,
                 leds: std::ptr::null_mut(),
                 brightness: 255,
@@ -48,23 +48,14 @@ pub fn init() -> ws2811_t {
     return panel;
 }
 
-pub fn allGreen(ledString: &mut ws2811_t) {
-    println!("called allGreen");
+pub fn setAllLedsToRgb(panel: &mut ws2811_t, colorCodeRgb: u32) {
+    println!("setAllLedsToRgb: colorCodeRgb = {:06x}", colorCodeRgb);
 
     unsafe {
-        std::ptr::write(ledString.channel[0].leds, 0x00002000);
-        //ledString.channel[0].leds.wrapping_add(0) = 0x00002000;
-        let ptr = ledString as *mut ws2811_t;
-        ws2811_render(ptr);
-    }
-}
-
-pub fn allRed(ledString: &mut ws2811_t) {
-    println!("called allRed");
-
-    unsafe {
-        std::ptr::write(ledString.channel[0].leds, 0x00200000);
-        let ptr = ledString as *mut ws2811_t;
+        for i in 0..=panel.channel[0].count-1 {
+            std::ptr::write(panel.channel[0].leds.add(i as usize), colorCodeRgb);
+        }
+        let ptr = panel as *mut ws2811_t;
         ws2811_render(ptr);
     }
 }

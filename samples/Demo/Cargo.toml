@@ -28,7 +28,6 @@ tokio = { workspace = true, features = ["macros", "rt-multi-thread", "signal"] }
 tonic = { workspace = true }
 url = { workspace = true }
 uuid = { workspace = true, features = ["v4", "fast-rng", "macro-diagnostics"] }
-led_driver = { path = "led_driver" }
 ws = "*"
 mio = "0.6.14"
 mio-extras = "2.0"
@@ -48,3 +47,4 @@ path = "speedometer-consumer/src/main.rs"
 # If built for aarch64, enable the 'vendored-ssl' feature.
 [target.'cfg(target_arch = "aarch64")'.dependencies]
 paho-mqtt = { workspace = true, features = ["vendored-ssl"] }
+led_driver = { path = "led_driver" }
