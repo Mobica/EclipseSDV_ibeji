@@ -24,15 +24,7 @@ members = [
   "digital-twin-model",
 
   # samples
-  "samples/common",
-  "samples/protobuf_data_access",
-  "samples/command",
   "samples/Demo",
-  "samples/mixed",
-  "samples/property",
-  "samples/seat_massager",
-  "samples/streaming",
-  "samples/tutorial"
 ]
 
 [workspace.dependencies]
@@ -59,7 +51,6 @@ prost = "0.12"
 prost-types = "0.12"
 rand = "0.8.5"
 regex = " 1.9.3"
-sdl2 = "0.35.2"
 serde = "1.0.160"
 serde_derive = "1.0.163"
 serde_json = "^1.0"
