@@ -4,7 +4,7 @@
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
-pub fn init(ledCount: usize) -> ws2811_t {
+pub fn init() -> ws2811_t {
     let mut panel = ws2811_t {
         render_wait_time: 0,
         device: std::ptr::null_mut(),
@@ -13,9 +13,9 @@ pub fn init(ledCount: usize) -> ws2811_t {
         dmanum: 10,
         channel: [
             ws2811_channel_t {
-                gpionum: 18,
+                gpionum: 21,
                 invert: 0,
-                count: ledCount as i32,
+                count: 256,
                 strip_type: 0x00081000,
                 leds: std::ptr::null_mut(),
                 brightness: 255,

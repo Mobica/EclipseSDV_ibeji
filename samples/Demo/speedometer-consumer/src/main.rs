@@ -173,7 +173,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     #[cfg(target_arch = "aarch64")]
     {
-    let mut panel = led_driver::init(8);
+    let mut panel = led_driver::init();
     led_driver::setAllLedsToRgb(&mut panel, 0x00200000);
     std::thread::sleep(std::time::Duration::from_secs(1));
     led_driver::setAllLedsToRgb(&mut panel, 0x00002000);
