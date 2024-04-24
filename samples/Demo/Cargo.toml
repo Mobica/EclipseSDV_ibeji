@@ -34,6 +34,7 @@ mio-extras = "2.0"
 
 [build-dependencies]
 tonic-build = { workspace = true }
+cc = { workspace = true }
 
 [[bin]]
 name = "speedometer-provider"
@@ -46,3 +47,4 @@ path = "speedometer-consumer/src/main.rs"
 # If built for aarch64, enable the 'vendored-ssl' feature.
 [target.'cfg(target_arch = "aarch64")'.dependencies]
 paho-mqtt = { workspace = true, features = ["vendored-ssl"] }
+led_driver = { path = "led_driver" }
