@@ -106,6 +106,13 @@ Once you have installed the prerequisites, go to your enlistment's root director
 
 `cargo build`
 
+To build on Raspberry Pi
+
+```bash
+cargo build --target aarch64-unknown-linux-gnu --features managed_subscribe 
+```
+
+
 This should build all of the libraries and executables.
 
 ### <a name="tokio-console-support">Tokio Console Support</a>
