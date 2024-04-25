@@ -59,3 +59,44 @@ pub fn setAllLedsToRgb(panel: &mut ws2811_t, colorCodeRgb: u32) {
         ws2811_render(ptr);
     }
 }
+
+fn generateGradient8(fromColor: u8, toColor: u8) -> [u8; 32] {
+
+    let step = if fromColor > toColor {(fromColor - toColor) as f64 / 32.0} else {(toColor - fromColor) as f64 / 32.0};
+    let mut array: [u8; 32] = Default::default();
+    for i in 0..32 {
+        array[i] = if fromColor > toColor {fromColor - (i as f64 * step) as u8} else {fromColor + (i as f64 * step) as u8};
+    }
+
+    return array;
+}
+
+fn generateGradient32(fromColor: u32, toColor: u32) -> [u32; 32] {
+
+    let mut array: [u32; 32] = Default::default();
+    let decomposedFrom = fromColor.to_ne_bytes();
+    let decomposedTo = toColor.to_ne_bytes();
+    let gradientR = generateGradient8(decomposedFrom[2], decomposedTo[2]);
+    let gradientG = generateGradient8(decomposedFrom[1], decomposedTo[1]);
+    let gradientB = generateGradient8(decomposedFrom[0], decomposedTo[0]);
+
+    for i in 0..32 {
+        array[i] = u32::from_ne_bytes([gradientB[i], gradientG[i], gradientR[i], 0x00]);
+    }
+
+    return array;
+}
+
+pub fn setRgbGradient(panel: &mut ws2811_t, colorCodeRgbLeft: u32, colorCodeRgbRight: u32) {
+    println!("setRgbGradient: colorCodeRgbLeft = {:06x}, colorCodeRgbRight = {:06x}", colorCodeRgbLeft, colorCodeRgbRight);
+
+    let gradient = generateGradient32(colorCodeRgbLeft, colorCodeRgbRight);
+
+    unsafe {
+        for i in 0..=panel.channel[0].count-1 {
+            std::ptr::write(panel.channel[0].leds.add(i as usize), gradient[i as usize / 8]);
+        }
+        let ptr = panel as *mut ws2811_t;
+        ws2811_render(ptr);
+    }
+}
