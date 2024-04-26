@@ -27,6 +27,8 @@ use tonic::{Request, Status};
 use uuid::Uuid;
 use serde::{Deserialize, Serialize};
 
+use std::str::FromStr;
+
 #[derive(Debug,Deserialize,Serialize)]
 struct DataPacket{
     VehicleSpeed: i32,
@@ -37,6 +39,10 @@ const MQTT_CLIENT_ID: &str = "Speedometer_mood";
 
 const RED_RGB_COLOR: u32 = 0xFF0000;   //    rgb(255, 0, 0)
 const GREEN_RGB_COLOR: u32 = 0x008000; //	rgb(0,128,0)
+
+const LED_DELAY_MS_FLAG: &str = "led_delay_ms=";
+const LED_COLOR_FLAG: &str = "led_color=";
+const LED_COUNT_FLAG: &str = "led_count=";
 
 /// Get subscription information from managed subscribe endpoint.
 ///
@@ -164,6 +170,36 @@ async fn receive_vehicle_speed_updates(
     Ok(sub_handle)
 }
 
+pub fn runningLed(panel: &mut led_driver::ws2811_t, led_color: u32, delay_ms: u64, max_count: i32)
+{
+    let count = if max_count < panel.channel[0].count { max_count } else { panel.channel[0].count };
+    loop {
+        for i in 0..=count-1 {
+            led_driver::setOnlyOneLedToRgb(panel, i as u32, led_color);
+            std::thread::sleep(std::time::Duration::from_millis(delay_ms));
+        }
+        for i in 0..=count-1 {
+            let id: u32 = (count -1 -i) as u32;
+            led_driver::setOnlyOneLedToRgb(panel, id, led_color);
+            std::thread::sleep(std::time::Duration::from_millis(delay_ms));
+        }
+    }
+}
+
+fn getCmdArg<T: std::str::FromStr>(argName: String, defVal: T) -> T where <T as FromStr>::Err: std::fmt::Debug {
+    let param: String = env::args()
+        .find_map(|arg| {
+            if arg.contains(&argName) {
+                return Some(arg.replace(&argName, ""));
+            }
+
+            None
+        })
+        .unwrap_or_else(|| "".to_string());
+
+    return if param.parse::<T>().is_ok() { param.parse::<T>().unwrap() } else { defVal };
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Setup logging.
@@ -174,6 +210,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(target_arch = "aarch64")]
     {
     let mut panel = led_driver::init();
+    const default_led_count: i32 = 8;
+    const default_led_delay_ms: u64 = 1000;
+    let led_count = getCmdArg(LED_COUNT_FLAG.to_string(), default_led_count);
+    let led_delay_ms = getCmdArg(LED_DELAY_MS_FLAG.to_string(), default_led_delay_ms);
+    let led_color = getCmdArg(LED_COLOR_FLAG.to_string(), RED_RGB_COLOR);
+
+    runningLed(&mut panel, led_color, led_delay_ms, led_count);
+
     led_driver::setAllLedsToRgb(&mut panel, 0x00200000);
     std::thread::sleep(std::time::Duration::from_secs(1));
     led_driver::setAllLedsToRgb(&mut panel, 0x00002000);

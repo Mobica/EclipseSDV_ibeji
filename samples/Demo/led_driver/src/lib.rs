@@ -100,3 +100,20 @@ pub fn setRgbGradient(panel: &mut ws2811_t, colorCodeRgbLeft: u32, colorCodeRgbR
         ws2811_render(ptr);
     }
 }
+
+pub fn setOnlyOneLedToRgb(panel: &mut ws2811_t, ledId: u32, colorCodeRgb: u32) {
+    println!("setOnlyOneLedToRgb: id: {ledId}, colorCodeRgb = {:06x}", colorCodeRgb);
+
+    unsafe {
+        for i in 0..=panel.channel[0].count-1 {
+            if ledId == i as u32 {
+                std::ptr::write(panel.channel[0].leds.add(i as usize), colorCodeRgb);
+            } else {
+                std::ptr::write(panel.channel[0].leds.add(i as usize), 0x00000000);
+            }
+        }
+        let ptr = panel as *mut ws2811_t;
+        ws2811_render(ptr);
+    }
+}
+
