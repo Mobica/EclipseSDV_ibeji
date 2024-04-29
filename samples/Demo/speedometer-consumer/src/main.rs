@@ -176,10 +176,9 @@ async fn receive_vehicle_speed_updates(
     Ok(sub_handle)
 }
 
+#[cfg(target_arch = "aarch64")]
 fn running_led(panel: &mut led_driver::ws2811_t, led_color: u32, delay_ms: u64, max_count: i32)
 {
-    #[cfg(target_arch = "aarch64")]
-    {
     let count = if max_count < panel.channel[0].count { max_count } else { panel.channel[0].count };
     loop {
         for i in 0..=count-2 {
@@ -192,13 +191,11 @@ fn running_led(panel: &mut led_driver::ws2811_t, led_color: u32, delay_ms: u64, 
             std::thread::sleep(std::time::Duration::from_millis(delay_ms));
         }
     }
-    }
 }
 
+#[cfg(target_arch = "aarch64")]
 fn dynamic_gradinet(panel: &mut led_driver::ws2811_t, color_code_rgb_left: u32, color_code_rgb_right: u32, led_delay_ms: u64)
 {
-    #[cfg(target_arch = "aarch64")]
-    {
     loop {
         for i in 0..31 {
             led_driver::setRgbGradientMod(panel, color_code_rgb_left, color_code_rgb_right, 0, i);
@@ -217,7 +214,6 @@ fn dynamic_gradinet(panel: &mut led_driver::ws2811_t, color_code_rgb_left: u32, 
             std::thread::sleep(std::time::Duration::from_millis(led_delay_ms));
         }
     }
-    }
 }
 
 fn get_cmd_arg<T: std::str::FromStr>(arg_name: String, def_val: T) -> T where <T as FromStr>::Err: std::fmt::Debug {
@@ -234,10 +230,9 @@ fn get_cmd_arg<T: std::str::FromStr>(arg_name: String, def_val: T) -> T where <T
     return if param.parse::<T>().is_ok() { param.parse::<T>().unwrap() } else { def_val };
 }
 
+#[cfg(target_arch = "aarch64")]
 fn default_splash(panel: &mut led_driver::ws2811_t)
 {
-    #[cfg(target_arch = "aarch64")]
-    {
     led_driver::setAllLedsToRgb(panel, 0x00200000);
     std::thread::sleep(std::time::Duration::from_secs(1));
     led_driver::setAllLedsToRgb(panel, 0x00002000);
@@ -250,9 +245,7 @@ fn default_splash(panel: &mut led_driver::ws2811_t)
     std::thread::sleep(std::time::Duration::from_secs(1));
     led_driver::setRgbGradient(panel, 0x00200000, 0x00000020);
     std::thread::sleep(std::time::Duration::from_secs(1));
-    }
 }
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Setup logging.
