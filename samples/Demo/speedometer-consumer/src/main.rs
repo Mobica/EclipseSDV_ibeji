@@ -216,19 +216,40 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let led_delay_ms = getCmdArg(LED_DELAY_MS_FLAG.to_string(), default_led_delay_ms);
     let led_color = getCmdArg(LED_COLOR_FLAG.to_string(), RED_RGB_COLOR);
 
-    runningLed(&mut panel, led_color, led_delay_ms, led_count);
+    // runningLed(&mut panel, led_color, led_delay_ms, led_count);
+    // led_driver::splash(&mut panel);
 
-    led_driver::setAllLedsToRgb(&mut panel, 0x00200000);
-    std::thread::sleep(std::time::Duration::from_secs(1));
-    led_driver::setAllLedsToRgb(&mut panel, 0x00002000);
-    std::thread::sleep(std::time::Duration::from_secs(1));
-    led_driver::setAllLedsToRgb(&mut panel, 0x00000020);
-    std::thread::sleep(std::time::Duration::from_secs(1));
-    led_driver::setAllLedsToRgb(&mut panel, 0x00202000);
-    std::thread::sleep(std::time::Duration::from_secs(1));
+    // led_driver::setAllLedsToRgb(&mut panel, 0x00200000);
+    // std::thread::sleep(std::time::Duration::from_secs(1));
+    // led_driver::setAllLedsToRgb(&mut panel, 0x00002000);
+    // std::thread::sleep(std::time::Duration::from_secs(1));
+    // led_driver::setAllLedsToRgb(&mut panel, 0x00000020);
+    // std::thread::sleep(std::time::Duration::from_secs(1));
+    // led_driver::setAllLedsToRgb(&mut panel, 0x00202000);
+    // std::thread::sleep(std::time::Duration::from_secs(1));
     led_driver::setRgbGradient(&mut panel, 0x00200000, 0x00002000);
     std::thread::sleep(std::time::Duration::from_secs(1));
     led_driver::setRgbGradient(&mut panel, 0x00200000, 0x00000020);
+    std::thread::sleep(std::time::Duration::from_secs(1));
+
+    loop {
+        for i in 0..31 {
+            led_driver::setRgbGradientMod(&mut panel, 0x00200000, 0x00002000, 0, i);
+            std::thread::sleep(std::time::Duration::from_millis(led_delay_ms));
+        }
+        for i in 0..31 {
+            led_driver::setRgbGradientMod(&mut panel, 0x00200000, 0x00002000, i, 31);
+            std::thread::sleep(std::time::Duration::from_millis(led_delay_ms));
+        }
+        for i in 0..31 {
+            led_driver::setRgbGradientMod(&mut panel, 0x00200000, 0x00002000, 31-i, 31);
+            std::thread::sleep(std::time::Duration::from_millis(led_delay_ms));
+        }
+        for i in 0..31 {
+            led_driver::setRgbGradientMod(&mut panel, 0x00200000, 0x00002000, 0, 31-i);
+            std::thread::sleep(std::time::Duration::from_millis(led_delay_ms));
+        }
+    }
     }
 
 
