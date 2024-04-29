@@ -27,6 +27,8 @@ use tonic::{Request, Status};
 use uuid::Uuid;
 use serde::{Deserialize, Serialize};
 
+use std::str::FromStr;
+
 #[derive(Debug,Deserialize,Serialize)]
 struct DataPacket{
     VehicleSpeed: i32,
@@ -37,6 +39,16 @@ const MQTT_CLIENT_ID: &str = "Speedometer_mood";
 
 const RED_RGB_COLOR: u32 = 0xFF0000;   //    rgb(255, 0, 0)
 const GREEN_RGB_COLOR: u32 = 0x008000; //	rgb(0,128,0)
+
+const LED_DELAY_MS_FLAG: &str = "led_delay_ms=";
+const LED_COLOR_FLAG: &str = "led_color=";
+const LED_COUNT_FLAG: &str = "led_count=";
+
+const BLUEBOLT_MODE: &str = "mode=";
+const BLUEBOLT_MODE_OFF: &str = "off";
+const BLUEBOLT_MODE_LED: &str = "led";
+const BLUEBOLT_MODE_GRADIENT: &str = "gradient";
+const BLUEBOLT_MODE_DEFAULT: &str = "";
 
 /// Get subscription information from managed subscribe endpoint.
 ///
@@ -164,6 +176,76 @@ async fn receive_vehicle_speed_updates(
     Ok(sub_handle)
 }
 
+#[cfg(target_arch = "aarch64")]
+fn running_led(panel: &mut led_driver::ws2811_t, led_color: u32, delay_ms: u64, max_count: i32)
+{
+    let count = if max_count < panel.channel[0].count { max_count } else { panel.channel[0].count };
+    loop {
+        for i in 0..=count-2 {
+            led_driver::setOnlyOneLedToRgb(panel, i as u32, led_color);
+            std::thread::sleep(std::time::Duration::from_millis(delay_ms));
+        }
+        for i in 0..=count-2 {
+            let id: u32 = (count -1 -i) as u32;
+            led_driver::setOnlyOneLedToRgb(panel, id, led_color);
+            std::thread::sleep(std::time::Duration::from_millis(delay_ms));
+        }
+    }
+}
+
+#[cfg(target_arch = "aarch64")]
+fn dynamic_gradinet(panel: &mut led_driver::ws2811_t, color_code_rgb_left: u32, color_code_rgb_right: u32, led_delay_ms: u64)
+{
+    loop {
+        for i in 0..31 {
+            led_driver::setRgbGradientMod(panel, color_code_rgb_left, color_code_rgb_right, 0, i);
+            std::thread::sleep(std::time::Duration::from_millis(led_delay_ms));
+        }
+        for i in 0..31 {
+            led_driver::setRgbGradientMod(panel, color_code_rgb_left, color_code_rgb_right, i, 31);
+            std::thread::sleep(std::time::Duration::from_millis(led_delay_ms));
+        }
+        for i in 0..31 {
+            led_driver::setRgbGradientMod(panel, color_code_rgb_left, color_code_rgb_right, 31-i, 31);
+            std::thread::sleep(std::time::Duration::from_millis(led_delay_ms));
+        }
+        for i in 0..31 {
+            led_driver::setRgbGradientMod(panel, color_code_rgb_left, color_code_rgb_right, 0, 31-i);
+            std::thread::sleep(std::time::Duration::from_millis(led_delay_ms));
+        }
+    }
+}
+
+fn get_cmd_arg<T: std::str::FromStr>(arg_name: String, def_val: T) -> T where <T as FromStr>::Err: std::fmt::Debug {
+    let param: String = env::args()
+        .find_map(|arg| {
+            if arg.contains(&arg_name) {
+                return Some(arg.replace(&arg_name, ""));
+            }
+
+            None
+        })
+        .unwrap_or_else(|| "".to_string());
+
+    return if param.parse::<T>().is_ok() { param.parse::<T>().unwrap() } else { def_val };
+}
+
+#[cfg(target_arch = "aarch64")]
+fn default_splash(panel: &mut led_driver::ws2811_t)
+{
+    led_driver::setAllLedsToRgb(panel, 0x00200000);
+    std::thread::sleep(std::time::Duration::from_secs(1));
+    led_driver::setAllLedsToRgb(panel, 0x00002000);
+    std::thread::sleep(std::time::Duration::from_secs(1));
+    led_driver::setAllLedsToRgb(panel, 0x00000020);
+    std::thread::sleep(std::time::Duration::from_secs(1));
+    led_driver::setAllLedsToRgb(panel, 0x00202000);
+    std::thread::sleep(std::time::Duration::from_secs(1));
+    led_driver::setRgbGradient(panel, 0x00200000, 0x00002000);
+    std::thread::sleep(std::time::Duration::from_secs(1));
+    led_driver::setRgbGradient(panel, 0x00200000, 0x00000020);
+    std::thread::sleep(std::time::Duration::from_secs(1));
+}
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Setup logging.
@@ -174,17 +256,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(target_arch = "aarch64")]
     {
     let mut panel = led_driver::init();
-    led_driver::setAllLedsToRgb(&mut panel, 0x00200000);
-    std::thread::sleep(std::time::Duration::from_secs(1));
-    led_driver::setAllLedsToRgb(&mut panel, 0x00002000);
-    std::thread::sleep(std::time::Duration::from_secs(1));
-    led_driver::setAllLedsToRgb(&mut panel, 0x00000020);
-    std::thread::sleep(std::time::Duration::from_secs(1));
-    led_driver::setAllLedsToRgb(&mut panel, 0x00202000);
-    std::thread::sleep(std::time::Duration::from_secs(1));
-    led_driver::setRgbGradient(&mut panel, 0x00200000, 0x00002000);
-    std::thread::sleep(std::time::Duration::from_secs(1));
-    led_driver::setRgbGradient(&mut panel, 0x00200000, 0x00000020);
+    const DEFAULT_LED_COUNT: i32 = 8;
+    const DEFAULT_LED_DELAY_MS: u64 = 100;
+    let led_count = get_cmd_arg(LED_COUNT_FLAG.to_string(), DEFAULT_LED_COUNT);
+    let led_delay_ms = get_cmd_arg(LED_DELAY_MS_FLAG.to_string(), DEFAULT_LED_DELAY_MS);
+    let led_color = get_cmd_arg(LED_COLOR_FLAG.to_string(), RED_RGB_COLOR);
+    let bb_mode = &get_cmd_arg(BLUEBOLT_MODE.to_string(), BLUEBOLT_MODE_DEFAULT.to_string()) as &str;
+
+    match bb_mode {
+        BLUEBOLT_MODE_OFF => led_driver::setRgbGradient(&mut panel, 0x00000000, 0x00000000),
+        BLUEBOLT_MODE_LED => running_led(&mut panel, led_color, led_delay_ms, led_count),
+        BLUEBOLT_MODE_GRADIENT => dynamic_gradinet(&mut panel, 0x00200000, 0x00002000, led_delay_ms),
+        _ => default_splash(&mut panel),
+    }
     }
 
 
