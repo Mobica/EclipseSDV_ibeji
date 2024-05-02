@@ -123,7 +123,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Start mock data stream.
     let min_interval_ms = 1000; // 1 second
-    let data_stream = start_vehicle_speed_data_stream(min_interval_ms);
+    const SPEED_UPDATE_MS_FLAG: &str = "speed_update_ms=";
+    let interval_ms: u64 = std::env::args()
+        .find_map(|arg| {
+            if arg.contains(SPEED_UPDATE_MS_FLAG) {
+                return Some(arg.replace(SPEED_UPDATE_MS_FLAG, ""));
+            }
+
+            None
+        })
+        .unwrap_or_else(|| min_interval_ms.to_string()).parse().unwrap();
+
+    let data_stream = start_vehicle_speed_data_stream(interval_ms);
     info!("MST data_streamhas started.");
     // Setup provider management cb endpoint.
     let provider = ProviderImpl::new(data_stream, min_interval_ms);
