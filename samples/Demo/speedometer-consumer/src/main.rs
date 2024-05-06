@@ -44,11 +44,19 @@ const LED_DELAY_MS_FLAG: &str = "led_delay_ms=";
 const LED_COLOR_FLAG: &str = "led_color=";
 const LED_COUNT_FLAG: &str = "led_count=";
 
+const MAX_SPEED_FLAG: &str = "max_speed=";
+const MAX_SPEED_DEFAULT: i32 = 100;
+
 const BLUEBOLT_MODE: &str = "mode=";
 const BLUEBOLT_MODE_OFF: &str = "off";
 const BLUEBOLT_MODE_LED: &str = "led";
 const BLUEBOLT_MODE_GRADIENT: &str = "gradient";
+const BLUEBOLT_MODE_SPEED: &str = "speed";
 const BLUEBOLT_MODE_DEFAULT: &str = "";
+
+#[cfg(target_arch = "aarch64")]
+pub static mut display_ptr: *mut led_driver::Display = std::ptr::null_mut();
+pub static mut max_speed: i32 = MAX_SPEED_DEFAULT;
 
 /// Get subscription information from managed subscribe endpoint.
 ///
@@ -91,6 +99,22 @@ fn send_to_dashboard(data: DataPacket)
 {
     unsafe{
         dashboard_update::current_vehicle_speed = data.VehicleSpeed;
+
+        #[cfg(target_arch = "aarch64")]
+        {
+            let color_code_rgb_left = 0x00200000;
+            let color_code_rgb_right =  0x00002000;
+            let half_max_speed = max_speed / 2;
+
+            if data.VehicleSpeed <= half_max_speed {
+                (*display_ptr).setRgbGradientMod(color_code_rgb_left, color_code_rgb_right, 0, (31*data.VehicleSpeed/half_max_speed) as usize);
+            } else if data.VehicleSpeed >= max_speed {
+                // too fast
+                (*display_ptr).setRgbGradientMod(color_code_rgb_left, color_code_rgb_right, 31, 31);
+            } else {
+                (*display_ptr).setRgbGradientMod(color_code_rgb_left, color_code_rgb_right, (31*(data.VehicleSpeed-half_max_speed)/half_max_speed) as usize, 31);
+            }
+        }
     }
 }
 
@@ -199,20 +223,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     #[cfg(target_arch = "aarch64")]
     {
-        let mut display: led_driver::Display = Default::default();
-        display.init();
         const DEFAULT_LED_COUNT: i32 = 8;
         const DEFAULT_LED_DELAY_MS: u64 = 100;
+        let mut display: led_driver::Display = Default::default();
+        display.init();
+
         let led_count = get_cmd_arg(LED_COUNT_FLAG.to_string(), DEFAULT_LED_COUNT);
         let led_delay_ms = get_cmd_arg(LED_DELAY_MS_FLAG.to_string(), DEFAULT_LED_DELAY_MS);
         let led_color = get_cmd_arg(LED_COLOR_FLAG.to_string(), RED_RGB_COLOR);
         let bb_mode = &get_cmd_arg(BLUEBOLT_MODE.to_string(), BLUEBOLT_MODE_DEFAULT.to_string()) as &str;
 
+        unsafe {
+            display_ptr = &mut display as *mut led_driver::Display;
+            max_speed = get_cmd_arg(MAX_SPEED_FLAG.to_string(), MAX_SPEED_DEFAULT) as i32;
+        }
+
         match bb_mode {
-            BLUEBOLT_MODE_OFF => display.setRgbGradient(0x00000000, 0x00000000),
+            BLUEBOLT_MODE_OFF => { display.setRgbGradient(0x00000000, 0x00000000); return Ok(());},
             BLUEBOLT_MODE_LED => led_driver::running_led(&mut display, led_color, led_delay_ms, led_count),
             BLUEBOLT_MODE_GRADIENT => led_driver::dynamic_gradinet(&mut display, 0x00200000, 0x00002000, led_delay_ms),
-            _ => led_driver::default_splash(&mut display),
+            BLUEBOLT_MODE_SPEED => info!("provider's speed"),
+            _ => { led_driver::default_splash(&mut display); return Ok(());},
         }
     }
 
