@@ -37,7 +37,7 @@ pub static mut g_vehicle_speed: i32 = 75;
 /// # Arguments
 /// * `invehicle_digital_twin_uri` - The In-Vehicle Digital Twin URI.
 /// * `provider_uri` - The provider's URI.
-async fn register_vehicle_speed(
+async fn register_entities(
     invehicle_digital_twin_uri: &str,
     provider_uri: &str,
 ) -> Result<(), Status> {
@@ -48,18 +48,54 @@ async fn register_vehicle_speed(
         context: "GetSubscriptionInfo".to_string(),
     };
 
-    let entity_access_info = EntityAccessInfo {
+    let vehicle_speed_entity_access_info = EntityAccessInfo {
         name: sdv::vehicle::vehicle_speed::NAME.to_string(),
         id: sdv::vehicle::vehicle_speed::ID.to_string(),
         description: sdv::vehicle::vehicle_speed::DESCRIPTION.to_string(),
-        endpoint_info_list: vec![endpoint_info],
+        endpoint_info_list: vec![endpoint_info.clone()],
     };
+
+    let vehicle_mileage_entity_access_info = EntityAccessInfo {
+        name: sdv::vehicle::vehicle_mileage::NAME.to_string(),
+        id: sdv::vehicle::vehicle_mileage::ID.to_string(),
+        description: sdv::vehicle::vehicle_mileage::DESCRIPTION.to_string(),
+        endpoint_info_list: vec![endpoint_info.clone()],
+    };
+
+    let vehicle_gear_entity_access_info = EntityAccessInfo {
+        name: sdv::vehicle::vehicle_gear::NAME.to_string(),
+        id: sdv::vehicle::vehicle_gear::ID.to_string(),
+        description: sdv::vehicle::vehicle_gear::DESCRIPTION.to_string(),
+        endpoint_info_list: vec![endpoint_info.clone()],
+    };
+
+    let vehicle_fuel_entity_access_info = EntityAccessInfo {
+        name: sdv::vehicle::vehicle_fuel::NAME.to_string(),
+        id: sdv::vehicle::vehicle_fuel::ID.to_string(),
+        description: sdv::vehicle::vehicle_fuel::DESCRIPTION.to_string(),
+        endpoint_info_list: vec![endpoint_info.clone()],
+    };
+
+    let vehicle_rpm_entity_access_info = EntityAccessInfo {
+        name: sdv::vehicle::vehicle_rpm::NAME.to_string(),
+        id: sdv::vehicle::vehicle_rpm::ID.to_string(),
+        description: sdv::vehicle::vehicle_rpm::DESCRIPTION.to_string(),
+        endpoint_info_list: vec![endpoint_info.clone()],
+    };
+
+    let entity_access_info_vec = vec![
+        vehicle_speed_entity_access_info,
+        vehicle_mileage_entity_access_info,
+        vehicle_gear_entity_access_info,
+        vehicle_fuel_entity_access_info,
+        vehicle_rpm_entity_access_info
+    ];
 
     let mut client = InvehicleDigitalTwinClient::connect(invehicle_digital_twin_uri.to_string())
         .await
         .map_err(|e| Status::internal(e.to_string()))?;
     let request =
-        tonic::Request::new(RegisterRequest { entity_access_info_list: vec![entity_access_info] });
+        tonic::Request::new(RegisterRequest { entity_access_info_list: entity_access_info_vec });
     let _response = client.register(request).await?;
 
     Ok(())
@@ -182,6 +218,44 @@ async fn receive_can_service_updates(
     Ok(sub_handle)
 }
 
+fn fake_i32_data_stream(value: i32) -> watch::Receiver<i32> {
+    debug!("Starting the fake i32 data stream.");
+    let mut param: i32 = value;
+    let (sender, reciever) = watch::channel(param);
+    tokio::spawn(async move {
+        loop {
+            if let Err(err) = sender.send(param) {
+                warn!("Failed to get new value due to '{err:?}'");
+                break;
+            }
+
+            param = param + 1;
+            sleep(Duration::from_millis(1000)).await;
+        }
+    });
+
+    reciever
+}
+
+fn fake_i8_data_stream(value: i8) -> watch::Receiver<i8> {
+    debug!("Starting the fake i8 data stream.");
+    let mut param: i8 = value;
+    let (sender, reciever) = watch::channel(param);
+    tokio::spawn(async move {
+        loop {
+            if let Err(err) = sender.send(param) {
+                warn!("Failed to get new value due to '{err:?}'");
+                break;
+            }
+
+            param = param + 1;
+            sleep(Duration::from_millis(1000)).await;
+        }
+    });
+
+    reciever
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Setup logging.
@@ -213,7 +287,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         })
         .unwrap_or_else(|| min_interval_ms.to_string()).parse().unwrap();
 
-    let data_stream = start_vehicle_speed_data_stream(interval_ms);
+    let mut data_stream = provider_impl::VehicleData { speed: start_vehicle_speed_data_stream(interval_ms),
+                                                       mileage: fake_i32_data_stream(1000),
+                                                       gear: fake_i8_data_stream(1),
+                                                       fuel: fake_i8_data_stream(1),
+                                                       rpm: fake_i32_data_stream(1000) };
     info!("MST data_streamhas started.");
     // Setup provider management cb endpoint.
     let provider = ProviderImpl::new(data_stream, min_interval_ms);
@@ -223,9 +301,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let server_future =
         Server::builder().add_service(ManagedSubscribeCallbackServer::new(provider)).serve(addr);
 
-    debug!("Sending a register request to the In-Vehicle Digital Twin Service URI {invehicle_digital_twin_uri}");
+    debug!("Sending a register requests to the In-Vehicle Digital Twin Service URI {invehicle_digital_twin_uri}");
     retry_async_based_on_status(30, Duration::from_secs(1), || {
-        register_vehicle_speed(&invehicle_digital_twin_uri, &provider_uri)
+        register_entities(&invehicle_digital_twin_uri, &provider_uri)
     })
     .await?;
 
