@@ -537,11 +537,43 @@ pub mod seat_massager {
 pub mod vehicle {
     pub const ID: &str = "dtmi:sdv:vehicle;1";
     pub const DESCRIPTION: &str = "Vehicle Interface.";
-    
+
     pub mod vehicle_speed {
         pub const ID: &str = "dtmi:sdv:vehicle:vehicle_speed;1";
         pub const NAME: &str = "vehicle_speed";
         pub const DESCRIPTION: &str = "Vehicle speed";
+
+        pub type TYPE = i32;
+    }
+
+    pub mod vehicle_gear {
+        pub const ID: &str = "dtmi:sdv:vehicle:vehicle_gear;1";
+        pub const NAME: &str = "vehicle_gear";
+        pub const DESCRIPTION: &str = "Vehicle gear";
+
+        pub type TYPE = i8;
+    }
+
+    pub mod vehicle_mileage {
+        pub const ID: &str = "dtmi:sdv:vehicle:mileage;1";
+        pub const NAME: &str = "vehicle_mileage";
+        pub const DESCRIPTION: &str = "Vehicle mileage";
+
+        pub type TYPE = i32;
+    }
+
+    pub mod vehicle_fuel {
+        pub const ID: &str = "dtmi:sdv:vehicle:vehicle_fuel;1";
+        pub const NAME: &str = "vehicle_fuel";
+        pub const DESCRIPTION: &str = "Vehicle fuel";
+
+        pub type TYPE = i8;
+    }
+
+    pub mod vehicle_rpm {
+        pub const ID: &str = "dtmi:sdv:vehicle:vehicle_rpm;1";
+        pub const NAME: &str = "vehicle_rpm";
+        pub const DESCRIPTION: &str = "Vehicle rpm";
 
         pub type TYPE = i32;
     }

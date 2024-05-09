@@ -24,13 +24,37 @@ use tonic::{Request, Response, Status};
 
 const MQTT_CLIENT_ID: &str = "Speedometer_mood";
 
+#[derive(Clone, Debug)]
+pub struct VehicleData {
+    pub speed: watch::Receiver<sdv::vehicle::vehicle_speed::TYPE>,
+    pub mileage: watch::Receiver<sdv::vehicle::vehicle_mileage::TYPE>,
+    pub gear: watch::Receiver<sdv::vehicle::vehicle_gear::TYPE>,
+    pub fuel: watch::Receiver<sdv::vehicle::vehicle_fuel::TYPE>,
+    pub rpm: watch::Receiver<sdv::vehicle::vehicle_rpm::TYPE>,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Property {
-    #[serde(rename = "VehicleSpeed")] 
+    #[serde(rename = "VehicleSpeed")]
     vehicle_speed: sdv::vehicle::vehicle_speed::TYPE,
     #[serde(rename = "$metadata")]
-    metadata: Metadata,
+    speed_metadata: Metadata,
+    #[serde(rename = "VehicleMileage")]
+    vehicle_mileage: sdv::vehicle::vehicle_mileage::TYPE,
+    #[serde(rename = "$metadata")]
+    mileage_metadata: Metadata,
+    #[serde(rename = "VehicleGear")]
+    vehicle_gear: sdv::vehicle::vehicle_gear::TYPE,
+    #[serde(rename = "$metadata")]
+    gear_metadata: Metadata,
+    #[serde(rename = "VehicleFuel")]
+    vehicle_fuel: sdv::vehicle::vehicle_fuel::TYPE,
+    #[serde(rename = "$metadata")]
+    fuel_metadata: Metadata,
+    #[serde(rename = "VehicleRpm")]
+    vehicle_rpm: sdv::vehicle::vehicle_rpm::TYPE,
+    #[serde(rename = "$metadata")]
+    rpm_metadata: Metadata,
 }
 
 /// Actions that are returned from the Pub Sub Service.
@@ -51,7 +75,7 @@ pub struct TopicInfo {
 
 #[derive(Debug)]
 pub struct ProviderImpl {
-    pub data_stream: watch::Receiver<i32>,
+    pub data_stream: VehicleData,
     pub min_interval_ms: u64,
     entity_map: Arc<RwLock<HashMap<String, Vec<TopicInfo>>>>,
 }
@@ -60,10 +84,18 @@ pub struct ProviderImpl {
 ///
 /// # Arguments
 /// * `vehicle_speed` - The vehicle speed value.
-fn create_property_json(vehicle_speed: i32) -> String {
-    let metadata = Metadata { model: sdv::vehicle::vehicle_speed::ID.to_string() };
+fn create_property_json(data: &VehicleData) -> String {
+    let speed_metadata = Metadata { model: sdv::vehicle::vehicle_speed::ID.to_string() };
+    let mileage_metadata = Metadata { model: sdv::vehicle::vehicle_mileage::ID.to_string() };
+    let gear_metadata = Metadata { model: sdv::vehicle::vehicle_gear::ID.to_string() };
+    let fuel_metadata = Metadata { model: sdv::vehicle::vehicle_fuel::ID.to_string() };
+    let rpm_metadata = Metadata { model: sdv::vehicle::vehicle_rpm::ID.to_string() };
 
-    let property: Property = Property { vehicle_speed, metadata };
+    let property: Property = Property { vehicle_speed: *data.speed.borrow(), speed_metadata,
+                                        vehicle_mileage: *data.mileage.borrow(), mileage_metadata,
+                                        vehicle_gear: *data.gear.borrow(), gear_metadata,
+                                        vehicle_fuel: *data.fuel.borrow(), fuel_metadata,
+                                        vehicle_rpm: *data.rpm.borrow(), rpm_metadata };
 
     serde_json::to_string(&property).unwrap()
 }
@@ -109,12 +141,16 @@ impl ProviderImpl {
     /// # Arguments
     /// * `data_stream` - Receiver for data stream for entity.
     /// * `min_interval_ms` - The frequency of the data coming over the data stream.
-    pub fn new(data_stream: watch::Receiver<i32>, min_interval_ms: u64) -> Self {
+    pub fn new(data_stream: VehicleData, min_interval_ms: u64) -> Self {
         // Initialize entity map.
         let mut entity_map = HashMap::new();
 
         // Insert entry for entity id's associated with provider.
         entity_map.insert(sdv::vehicle::vehicle_speed::ID.to_string(), Vec::new());
+        entity_map.insert(sdv::vehicle::vehicle_mileage::ID.to_string(), Vec::new());
+        entity_map.insert(sdv::vehicle::vehicle_gear::ID.to_string(), Vec::new());
+        entity_map.insert(sdv::vehicle::vehicle_fuel::ID.to_string(), Vec::new());
+        entity_map.insert(sdv::vehicle::vehicle_rpm::ID.to_string(), Vec::new());
 
         // Create new instance.
         ProviderImpl { data_stream, min_interval_ms, entity_map: Arc::new(RwLock::new(entity_map)) }
@@ -167,14 +203,17 @@ impl ProviderImpl {
                 }
 
                 // Get data from stream at the current instant.
-                let data = *data_stream.borrow();
-                let content = create_property_json(data);
+                let content = create_property_json(&data_stream);
                 let broker_uri = subscription_info.uri.clone();
 
                 // Publish message to broker.
                 info!(
-                    "Publish to {topic} for {} with value {data}",
-                    sdv::vehicle::vehicle_speed::NAME
+                    "Publish to {topic} for {}, {}, {}, {}, {} with value {content}",
+                    sdv::vehicle::vehicle_speed::NAME,
+                    sdv::vehicle::vehicle_mileage::NAME,
+                    sdv::vehicle::vehicle_gear::NAME,
+                    sdv::vehicle::vehicle_fuel::NAME,
+                    sdv::vehicle::vehicle_rpm::NAME
                 );
 
                 if let Err(err) = publish_message(&broker_uri, &topic, &content) {
