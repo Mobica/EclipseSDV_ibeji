@@ -229,6 +229,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     })
     .await?;
 
+    // TODO: "Topic" and "broker" should be made configurable
     let topic = "dashboard/value/speed";
     let broker_uri = "mqtt://0.0.0.0:1883";
 
