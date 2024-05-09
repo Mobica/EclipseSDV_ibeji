@@ -30,8 +30,12 @@ use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
 #[derive(Debug,Deserialize,Serialize)]
-struct DataPacket{
-    VehicleSpeed: i32,
+struct DataPacket {
+    VehicleSpeed: sdv::vehicle::vehicle_speed::TYPE,
+    VehicleMileage: sdv::vehicle::vehicle_mileage::TYPE,
+    VehicleGear: sdv::vehicle::vehicle_gear::TYPE,
+    VehicleFuel: sdv::vehicle::vehicle_fuel::TYPE,
+    VehicleRpm: sdv::vehicle::vehicle_rpm::TYPE
 }
 
 const FREQUENCY_MS_FLAG: &str = "freq_ms=";
@@ -63,7 +67,7 @@ pub static mut max_speed: i32 = MAX_SPEED_DEFAULT;
 /// # Arguments
 /// * `managed_subscribe_uri` - The managed subscribe URI.
 /// * `constraints` - Constraints for the managed topic.
-async fn get_vehicle_speed_subscription_info(
+async fn get_vehicle_subscription_info(
     managed_subscribe_uri: &str,
     constraints: Vec<Constraint>,
 ) -> Result<SubscriptionInfoResponse, Status> {
@@ -99,6 +103,10 @@ fn send_to_dashboard(data: DataPacket)
 {
     unsafe{
         dashboard_update::current_vehicle_speed = data.VehicleSpeed;
+        dashboard_update::current_vehicle_mileage = data.VehicleMileage;
+        dashboard_update::current_vehicle_gear = data.VehicleGear;
+        dashboard_update::current_vehicle_fuel = data.VehicleFuel;
+        dashboard_update::current_vehicle_rpm = data.VehicleRpm;
 
         #[cfg(target_arch = "aarch64")]
         {
@@ -127,7 +135,7 @@ fn print_type_of<T>(_: &T) {
 /// # Arguments
 /// * `broker_uri` - The broker URI.
 /// * `topic` - The topic.
-async fn receive_vehicle_speed_updates(
+async fn receive_vehicle_data_updates(
     broker_uri: &str,
     topic: &str,
 ) -> Result<JoinHandle<()>, String> {
@@ -174,7 +182,7 @@ async fn receive_vehicle_speed_updates(
     let sub_handle = tokio::spawn(async move {
         for msg in receiver.iter() {
             if let Some(msg) = msg {
-                      
+
                 received_msg_handler(msg);
 //                print_type_of(&msg);
             } else if !client.is_connected() {
@@ -287,7 +295,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Get the subscription information for a managed topic with constraints.
-    let subscription_info = get_vehicle_speed_subscription_info(
+    let subscription_info = get_vehicle_subscription_info(
         &managed_subscribe_uri,
         vec![frequency_constraint],
     )
@@ -299,7 +307,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("The broker URI for the Vehicle Speed property's provider is {broker_uri}");
 
     // Subscribe to topic.
-    let sub_handle = receive_vehicle_speed_updates(&broker_uri, &topic)
+    let sub_handle = receive_vehicle_data_updates(&broker_uri, &topic)
         .await
         .map_err(|err| Status::internal(format!("{err:?}")))?;
 
