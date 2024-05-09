@@ -25,6 +25,13 @@ use tonic::transport::Server;
 
 use crate::provider_impl::ProviderImpl;
 
+use paho_mqtt as mqtt;
+use tokio::task::JoinHandle;
+use uuid::Uuid;
+
+const MQTT_CLIENT_ID: &str = "CAN_Speed_updates";
+pub static mut g_vehicle_speed: i32 = 75;
+
 /// Register the vehicle speed property's endpoint.
 ///
 /// # Arguments
@@ -74,33 +81,105 @@ fn start_vehicle_speed_data_stream(min_interval_ms: u64) -> watch::Receiver<i32>
                 sdv::vehicle::vehicle_speed::ID
             );
 
-            if let Err(err) = sender.send(vehicle_speed) {
-                warn!("Failed to get new value due to '{err:?}'");
-                break;
+            unsafe {
+                if let Err(err) = sender.send(g_vehicle_speed) {
+                    warn!("Failed to get new value due to '{err:?}'");
+                    break;
+                }
             }
 
             debug!("Completed the publish request");
-
-            // TODO get vehicle data from CAN            
-            if is_speed_increasing {
-                if vehicle_speed == 100 {
-                    is_speed_increasing = false;
-                    vehicle_speed -= 1;
-                } else {
-                    vehicle_speed += 1;
-                }
-            } else if vehicle_speed == 0 {
-                is_speed_increasing = true;
-                vehicle_speed += 1;
-            } else {
-                vehicle_speed -= 1;
-            }
 
             sleep(Duration::from_millis(min_interval_ms)).await;
         }
     });
 
     reciever
+}
+
+fn received_can_msg_handler(message_mqtt: paho_mqtt::message::Message)
+{
+    let payload = std::str::from_utf8(message_mqtt.payload()).unwrap();
+
+    info!("{}", message_mqtt);  //message
+    println!("{:02X?}", message_mqtt.payload()); // payload as hex
+
+    unsafe {
+        g_vehicle_speed = payload.parse().unwrap();
+    }
+}
+
+async fn receive_can_service_updates(
+    broker_uri: &str,
+    topic: &str,
+) -> Result<JoinHandle<()>, String> {
+    // Create a unique id for the client.
+    let client_id = format!("{MQTT_CLIENT_ID}-{}", Uuid::new_v4());
+
+    let create_opts =
+        mqtt::CreateOptionsBuilder::new().server_uri(broker_uri).client_id(client_id).finalize();
+
+    let client = mqtt::Client::new(create_opts)
+        .map_err(|err| format!("Failed to create MQTT client due to '{err:?}'"))?;
+
+    let receiver = client.start_consuming();
+
+    // Setup task to handle clean shutdown.
+    let ctrlc_cli = client.clone();
+    tokio::spawn(async move {
+        _ = signal::ctrl_c().await;
+
+        // Tells the client to shutdown consuming thread.
+        ctrlc_cli.stop_consuming();
+    });
+
+    // Last Will and Testament
+    let lwt =
+        mqtt::MessageBuilder::new().topic("test").payload("Receiver lost connection").finalize();
+
+    let conn_opts = mqtt::ConnectOptionsBuilder::new_v5()
+        .keep_alive_interval(Duration::from_secs(30))
+        .clean_session(false)
+        .will_message(lwt)
+        .finalize();
+
+    let _connect_response =
+        client.connect(conn_opts).map_err(|err| format!("Failed to connect due to '{err:?}"));
+
+    let mut _subscribe_response = client
+        .subscribe(topic, mqtt::types::QOS_1)
+        .map_err(|err| format!("Failed to subscribe to topic {topic} due to '{err:?}'"));
+
+    // Copy topic for separate thread.
+    let topic_string = topic.to_string();
+
+    let sub_handle = tokio::spawn(async move {
+        for msg in receiver.iter() {
+            if let Some(msg) = msg {
+
+                received_can_msg_handler(msg);
+//                print_type_of(&msg);
+            } else if !client.is_connected() {
+                if client.reconnect().is_ok() {
+                    _subscribe_response = client
+                        .subscribe(topic_string.as_str(), mqtt::types::QOS_1)
+                        .map_err(|err| {
+                            format!("Failed to subscribe to topic {topic_string} due to '{err:?}'")
+                        });
+                } else {
+                    break;
+                }
+            }
+        }
+
+        if client.is_connected() {
+            debug!("Disconnecting");
+            client.unsubscribe(topic_string.as_str()).unwrap();
+            client.disconnect(None).unwrap();
+        }
+    });
+
+    Ok(sub_handle)
 }
 
 #[tokio::main]
@@ -150,9 +229,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     })
     .await?;
 
+    let topic = "dashboard/value/speed";
+    let broker_uri = "mqtt://0.0.0.0:1883";
+
+    // Subscribe to topic.
+    let can_sub_handle = receive_can_service_updates(&broker_uri, &topic)
+        .await
+        .map_err(|err| Status::internal(format!("{err:?}")))?;
+
     server_future.await?;
 
     signal::ctrl_c().await.expect("Failed to listen for control-c event");
+
+    _ = can_sub_handle.await;
 
     info!("The Provider has been completed.");
 
