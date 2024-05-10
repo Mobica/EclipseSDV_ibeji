@@ -275,7 +275,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .await?;
 
     // Start mock data stream.
-    let min_interval_ms = 1000; // 1 second
+    let min_interval_ms = 300;
     const SPEED_UPDATE_MS_FLAG: &str = "speed_update_ms=";
     let interval_ms: u64 = std::env::args()
         .find_map(|arg| {
