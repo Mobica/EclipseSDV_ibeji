@@ -567,7 +567,7 @@ pub mod vehicle {
         pub const NAME: &str = "vehicle_fuel";
         pub const DESCRIPTION: &str = "Vehicle fuel";
 
-        pub type TYPE = i8;
+        pub type TYPE = i32;
     }
 
     pub mod vehicle_rpm {

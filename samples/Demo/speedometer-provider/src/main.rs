@@ -31,6 +31,10 @@ use uuid::Uuid;
 
 const MQTT_CLIENT_ID: &str = "CAN_Speed_updates";
 pub static mut g_vehicle_speed: i32 = 75;
+pub static mut g_vehicle_mileage: i32 = 0;
+pub static mut g_vehicle_gear: i8 = 1;
+pub static mut g_vehicle_fuel: i32 = 0;
+pub static mut g_vehicle_rpm: i32 = 0;
 
 /// Register the vehicle speed property's endpoint.
 ///
@@ -101,22 +105,16 @@ async fn register_entities(
     Ok(())
 }
 
-/// Start the vehicle speed data stream.
+/// Start vehicle speed data stream.
 ///
 /// # Arguments
+/// 'param' - i32 parameter value
 /// `min_interval_ms` - minimum frequency for data stream.
 fn start_vehicle_speed_data_stream(min_interval_ms: u64) -> watch::Receiver<i32> {
-    debug!("Starting the Provider'vehicle speed data stream.");
-    let mut vehicle_speed: i32 = 75;
-    let (sender, reciever) = watch::channel(vehicle_speed);
+    debug!("Starting the vehicle speed data stream.");
+    let (sender, receiver) = watch::channel(10);
     tokio::spawn(async move {
-        let mut is_speed_increasing: bool = true;
         loop {
-            debug!(
-                "Recording new value for {} of {vehicle_speed}",
-                sdv::vehicle::vehicle_speed::ID
-            );
-
             unsafe {
                 if let Err(err) = sender.send(g_vehicle_speed) {
                     warn!("Failed to get new value due to '{err:?}'");
@@ -130,7 +128,107 @@ fn start_vehicle_speed_data_stream(min_interval_ms: u64) -> watch::Receiver<i32>
         }
     });
 
-    reciever
+    receiver
+}
+
+/// Start vehicle mileage data stream.
+///
+/// # Arguments
+/// `min_interval_ms` - minimum frequency for data stream.
+fn start_vehicle_mileage_data_stream(min_interval_ms: u64) -> watch::Receiver<i32> {
+    debug!("Starting the vehicle mileage data stream.");
+    let (sender, receiver) = watch::channel(9);
+    tokio::spawn(async move {
+        loop {
+            unsafe {
+                if let Err(err) = sender.send(g_vehicle_mileage) {
+                    warn!("Failed to get new value due to '{err:?}'");
+                    break;
+                }
+            }
+
+            debug!("Completed the publish request");
+
+            sleep(Duration::from_millis(min_interval_ms)).await;
+        }
+    });
+
+    receiver
+}
+
+/// Start vehicle gear data stream.
+///
+/// # Arguments
+/// `min_interval_ms` - minimum frequency for data stream.
+fn start_vehicle_gear_data_stream(min_interval_ms: u64) -> watch::Receiver<i8> {
+    debug!("Starting the vehicle mileage data stream.");
+    let (sender, receiver) = watch::channel(11);
+    tokio::spawn(async move {
+        loop {
+            unsafe {
+                if let Err(err) = sender.send(g_vehicle_gear) {
+                    warn!("Failed to get new value due to '{err:?}'");
+                    break;
+                }
+            }
+
+            debug!("Completed the publish request");
+
+            sleep(Duration::from_millis(min_interval_ms)).await;
+        }
+    });
+
+    receiver
+}
+
+/// Start vehicle_speed data stream.
+///
+/// # Arguments
+/// `min_interval_ms` - minimum frequency for data stream.
+fn start_vehicle_fuel_data_stream(min_interval_ms: u64) -> watch::Receiver<i32> {
+    debug!("Starting the vehicle mileage data stream.");
+    let (sender, receiver) = watch::channel(8);
+    tokio::spawn(async move {
+        loop {
+            unsafe {
+                if let Err(err) = sender.send(g_vehicle_fuel) {
+                    warn!("Failed to get new value due to '{err:?}'");
+                    break;
+                }
+            }
+
+            debug!("Completed the publish request");
+
+            sleep(Duration::from_millis(min_interval_ms)).await;
+        }
+    });
+
+    receiver
+}
+
+/// Start vehicle_speed data stream.
+///
+/// # Arguments
+/// `min_interval_ms` - minimum frequency for data stream.
+fn start_vehicle_rpm_data_stream(min_interval_ms: u64) -> watch::Receiver<i32> {
+    debug!("Starting the vehicle mileage data stream.");
+    let (sender, receiver) = watch::channel(12);
+    tokio::spawn(async move {
+        loop {
+            unsafe {
+                if let Err(err) = sender.send(g_vehicle_rpm) {
+                    warn!("Failed to get new value due to '{err:?}'");
+                    break;
+                }
+            }
+
+            debug!("Completed the publish request");
+
+            sleep(Duration::from_millis(min_interval_ms)).await;
+        }
+    });
+
+    receiver
 }
 
 fn received_can_msg_handler(message_mqtt: paho_mqtt::message::Message)
@@ -141,13 +239,22 @@ fn received_can_msg_handler(message_mqtt: paho_mqtt::message::Message)
     println!("{:02X?}", message_mqtt.payload()); // payload as hex
 
     unsafe {
-        g_vehicle_speed = payload.parse().unwrap();
+        let topic = message_mqtt.topic();
+        let data = payload.parse::<i32>().unwrap();
+        match topic {
+            "dashboard/value/speed" => g_vehicle_speed = data,
+            "dashboard/value/mileage" => g_vehicle_mileage = data,
+            "dashboard/value/gear" => g_vehicle_gear = data as i8,
+            "dashboard/value/gas-level" => g_vehicle_fuel = data,
+            "dashboard/value/tacho" => g_vehicle_rpm = data,
+            &_ => info!("Not handled topic {topic}!")
+        }
     }
 }
 
 async fn receive_can_service_updates(
     broker_uri: &str,
-    topic: &str,
+    topics: &Vec<String>,
 ) -> Result<JoinHandle<()>, String> {
     // Create a unique id for the client.
     let client_id = format!("{MQTT_CLIENT_ID}-{}", Uuid::new_v4());
@@ -182,26 +289,27 @@ async fn receive_can_service_updates(
     let _connect_response =
         client.connect(conn_opts).map_err(|err| format!("Failed to connect due to '{err:?}"));
 
-    let mut _subscribe_response = client
-        .subscribe(topic, mqtt::types::QOS_1)
-        .map_err(|err| format!("Failed to subscribe to topic {topic} due to '{err:?}'"));
+    let topics_copy = topics.clone();
 
-    // Copy topic for separate thread.
-    let topic_string = topic.to_string();
+    for topic in &topics_copy {
+        let mut _subscribe_response = client
+            .subscribe(&topic, mqtt::types::QOS_1)
+            .map_err(|err| format!("Failed to subscribe to topic {topic} due to '{err:?}'"));
+    }
 
     let sub_handle = tokio::spawn(async move {
         for msg in receiver.iter() {
             if let Some(msg) = msg {
-
                 received_can_msg_handler(msg);
-//                print_type_of(&msg);
             } else if !client.is_connected() {
                 if client.reconnect().is_ok() {
-                    _subscribe_response = client
-                        .subscribe(topic_string.as_str(), mqtt::types::QOS_1)
-                        .map_err(|err| {
-                            format!("Failed to subscribe to topic {topic_string} due to '{err:?}'")
+                    for topic in &topics_copy {
+                        let mut _subscribe_response = client
+                            .subscribe(&topic, mqtt::types::QOS_1)
+                            .map_err(|err| {
+                                format!("Failed to subscribe to topic {topic} due to '{err:?}'")
                         });
+                    }
                 } else {
                     break;
                 }
@@ -210,50 +318,14 @@ async fn receive_can_service_updates(
 
         if client.is_connected() {
             debug!("Disconnecting");
-            client.unsubscribe(topic_string.as_str()).unwrap();
+            for topic in &topics_copy {
+                client.unsubscribe(&topic.as_str()).unwrap();
+            }
             client.disconnect(None).unwrap();
         }
     });
 
     Ok(sub_handle)
-}
-
-fn fake_i32_data_stream(value: i32) -> watch::Receiver<i32> {
-    debug!("Starting the fake i32 data stream.");
-    let mut param: i32 = value;
-    let (sender, reciever) = watch::channel(param);
-    tokio::spawn(async move {
-        loop {
-            if let Err(err) = sender.send(param) {
-                warn!("Failed to get new value due to '{err:?}'");
-                break;
-            }
-
-            param = param + 1;
-            sleep(Duration::from_millis(1000)).await;
-        }
-    });
-
-    reciever
-}
-
-fn fake_i8_data_stream(value: i8) -> watch::Receiver<i8> {
-    debug!("Starting the fake i8 data stream.");
-    let mut param: i8 = value;
-    let (sender, reciever) = watch::channel(param);
-    tokio::spawn(async move {
-        loop {
-            if let Err(err) = sender.send(param) {
-                warn!("Failed to get new value due to '{err:?}'");
-                break;
-            }
-
-            param = param + 1;
-            sleep(Duration::from_millis(1000)).await;
-        }
-    });
-
-    reciever
 }
 
 #[tokio::main]
@@ -287,11 +359,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         })
         .unwrap_or_else(|| min_interval_ms.to_string()).parse().unwrap();
 
+    // TODO: Add genetic function 'start_data_stream'
     let mut data_stream = provider_impl::VehicleData { speed: start_vehicle_speed_data_stream(interval_ms),
-                                                       mileage: fake_i32_data_stream(1000),
-                                                       gear: fake_i8_data_stream(1),
-                                                       fuel: fake_i8_data_stream(1),
-                                                       rpm: fake_i32_data_stream(1000) };
+                                                       mileage: start_vehicle_mileage_data_stream(interval_ms),
+                                                       gear: start_vehicle_gear_data_stream(interval_ms),
+                                                       fuel: start_vehicle_fuel_data_stream(interval_ms),
+                                                       rpm: start_vehicle_rpm_data_stream(interval_ms) };
     info!("MST data_streamhas started.");
     // Setup provider management cb endpoint.
     let provider = ProviderImpl::new(data_stream, min_interval_ms);
@@ -307,12 +380,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     })
     .await?;
 
-    // TODO: "Topic" and "broker" should be made configurable
-    let topic = "dashboard/value/speed";
-    let broker_uri = "mqtt://0.0.0.0:1883";
+    let topics = settings.subscription_list;
+    let broker_uri = settings.broker_uri;
 
     // Subscribe to topic.
-    let can_sub_handle = receive_can_service_updates(&broker_uri, &topic)
+    let can_sub_handle = receive_can_service_updates(&broker_uri, &topics)
         .await
         .map_err(|err| Status::internal(format!("{err:?}")))?;
 

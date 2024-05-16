@@ -264,7 +264,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .await?;
 
     // Get subscription constraints.
-    let default_frequency_ms: u64 = 10000;
+    let default_frequency_ms: u64 = 300;
     let frequency_ms = env::args()
         .find_map(|arg| {
             if arg.contains(FREQUENCY_MS_FLAG) {
