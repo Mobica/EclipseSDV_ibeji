@@ -13,6 +13,8 @@ pub struct Settings {
     pub provider_authority: String,
     pub chariott_uri: Option<String>,
     pub invehicle_digital_twin_uri: Option<String>,
+    pub broker_uri: String,
+    pub subscription_list: Vec<String>
 }
 
 /// Load the settings.
