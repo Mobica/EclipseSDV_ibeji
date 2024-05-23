@@ -51,6 +51,9 @@ const LED_COUNT_FLAG: &str = "led_count=";
 const MAX_SPEED_FLAG: &str = "max_speed=";
 const MAX_SPEED_DEFAULT: i32 = 100;
 
+const BLINK_DELAY_FLAG: &str = "blink_delay=";
+const BLINK_DEFAULT_DELAY: u32 = 1;
+
 const BLUEBOLT_MODE: &str = "mode=";
 const BLUEBOLT_MODE_OFF: &str = "off";
 const BLUEBOLT_MODE_LED: &str = "led";
@@ -61,6 +64,9 @@ const BLUEBOLT_MODE_DEFAULT: &str = "";
 #[cfg(target_arch = "aarch64")]
 pub static mut display_ptr: *mut led_driver::Display = std::ptr::null_mut();
 pub static mut max_speed: i32 = MAX_SPEED_DEFAULT;
+pub static mut blink_delay: u32 = 3;
+pub static mut blink_cur_delay: u32 = 0;
+pub static mut blink_color: u32 = 0;
 
 /// Get subscription information from managed subscribe endpoint.
 ///
@@ -114,11 +120,24 @@ fn send_to_dashboard(data: DataPacket)
             let color_code_rgb_right =  0x00002000;
             let half_max_speed = max_speed / 2;
 
-            if data.VehicleSpeed <= half_max_speed {
+            if data.VehicleSpeed == 0 {
+                // no speed
+                (*display_ptr).setAllLedsToRgb(color_code_rgb_right);
+            } else if data.VehicleSpeed <= half_max_speed {
                 (*display_ptr).setRgbGradientMod(color_code_rgb_left, color_code_rgb_right, 0, (31*data.VehicleSpeed/half_max_speed) as usize);
             } else if data.VehicleSpeed >= max_speed {
                 // too fast
-                (*display_ptr).setRgbGradientMod(color_code_rgb_left, color_code_rgb_right, 31, 31);
+                if blink_cur_delay > blink_delay {
+                    if blink_color > 0 {
+                        blink_color = 0;
+                    } else {
+                        blink_color = color_code_rgb_left;
+                    }
+                    blink_cur_delay = 0;
+                }
+                blink_cur_delay = blink_cur_delay + 1;
+
+                (*display_ptr).setAllLedsToRgb(blink_color);
             } else {
                 (*display_ptr).setRgbGradientMod(color_code_rgb_left, color_code_rgb_right, (31*(data.VehicleSpeed-half_max_speed)/half_max_speed) as usize, 31);
             }
@@ -242,12 +261,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let bb_mode = &get_cmd_arg(BLUEBOLT_MODE.to_string(), BLUEBOLT_MODE_DEFAULT.to_string()) as &str;
 
         unsafe {
+            blink_delay = get_cmd_arg(BLINK_DELAY_FLAG.to_string(), BLINK_DEFAULT_DELAY);
             display_ptr = &mut display as *mut led_driver::Display;
             max_speed = get_cmd_arg(MAX_SPEED_FLAG.to_string(), MAX_SPEED_DEFAULT) as i32;
         }
 
         match bb_mode {
-            BLUEBOLT_MODE_OFF => { display.setRgbGradient(0x00000000, 0x00000000); return Ok(());},
+            BLUEBOLT_MODE_OFF => { display.setAllLedsToRgb(0x00000000); return Ok(());},
             BLUEBOLT_MODE_LED => led_driver::running_led(&mut display, led_color, led_delay_ms, led_count),
             BLUEBOLT_MODE_GRADIENT => led_driver::dynamic_gradinet(&mut display, 0x00200000, 0x00002000, led_delay_ms),
             BLUEBOLT_MODE_SPEED => info!("provider's speed"),
@@ -322,6 +342,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Wait for subscriber task to cleanly shutdown.
     _ = sub_handle.await;
+
+    std::process::exit(0);
 
     Ok(())
 }
