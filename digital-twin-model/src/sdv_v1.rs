@@ -555,7 +555,7 @@ pub mod vehicle {
     }
 
     pub mod vehicle_mileage {
-        pub const ID: &str = "dtmi:sdv:vehicle:mileage;1";
+        pub const ID: &str = "dtmi:sdv:vehicle:vehicle_mileage;1";
         pub const NAME: &str = "vehicle_mileage";
         pub const DESCRIPTION: &str = "Vehicle mileage";
 
