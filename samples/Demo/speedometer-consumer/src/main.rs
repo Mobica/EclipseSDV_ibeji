@@ -31,11 +31,15 @@ use std::str::FromStr;
 
 #[derive(Debug,Deserialize,Serialize)]
 struct DataPacket {
-    VehicleSpeed: sdv::vehicle::vehicle_speed::TYPE,
-    VehicleMileage: sdv::vehicle::vehicle_mileage::TYPE,
-    VehicleGear: sdv::vehicle::vehicle_gear::TYPE,
-    VehicleFuel: sdv::vehicle::vehicle_fuel::TYPE,
-    VehicleRpm: sdv::vehicle::vehicle_rpm::TYPE
+    VehicleSpeed: sdv::vehicle_v2::vehicle_speed::TYPE,
+    VehicleMileage: sdv::vehicle_v2::vehicle_mileage::TYPE,
+    VehicleGear: sdv::vehicle_v2::vehicle_gear::TYPE,
+    VehicleFuel: sdv::vehicle_v2::vehicle_fuel::TYPE,
+    VehicleRpm: sdv::vehicle_v2::vehicle_rpm::TYPE,
+    VehicleWheelPressureFL: sdv::vehicle_v2::vehicle_wheel_pressure_fl::TYPE,
+    VehicleWheelPressureFR: sdv::vehicle_v2::vehicle_wheel_pressure_fr::TYPE,
+    VehicleWheelPressureRL: sdv::vehicle_v2::vehicle_wheel_pressure_rl::TYPE,
+    VehicleWheelPressureRR: sdv::vehicle_v2::vehicle_wheel_pressure_rr::TYPE
 }
 
 const FREQUENCY_MS_FLAG: &str = "freq_ms=";
@@ -83,7 +87,7 @@ async fn get_vehicle_subscription_info(
         .map_err(|err| Status::from_error(err.into()))?;
 
     let request = Request::new(SubscriptionInfoRequest {
-        entity_id: sdv::vehicle::vehicle_speed::ID.to_string(),
+        entity_id: sdv::vehicle_v2::vehicle_speed::ID.to_string(),
         constraints,
     });
 
@@ -113,6 +117,10 @@ fn send_to_dashboard(data: DataPacket)
         dashboard_update::current_vehicle_gear = data.VehicleGear;
         dashboard_update::current_vehicle_fuel = data.VehicleFuel;
         dashboard_update::current_vehicle_rpm = data.VehicleRpm;
+        dashboard_update::current_vehicle_wheel_pressure_fl = data.VehicleWheelPressureFL;
+        dashboard_update::current_vehicle_wheel_pressure_fr = data.VehicleWheelPressureFR;
+        dashboard_update::current_vehicle_wheel_pressure_rl = data.VehicleWheelPressureRL;
+        dashboard_update::current_vehicle_wheel_pressure_rr = data.VehicleWheelPressureRR;
 
         #[cfg(target_arch = "aarch64")]
         {
@@ -298,7 +306,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Retrieve the provider URI.
     let provider_endpoint_info = discover_digital_twin_provider_using_ibeji(
         &invehicle_digital_twin_uri,
-        sdv::vehicle::vehicle_speed::ID,
+        sdv::vehicle_v2::vehicle_speed::ID,
         digital_twin_protocol::GRPC,
         &[digital_twin_operation::MANAGEDSUBSCRIBE.to_string()],
     )

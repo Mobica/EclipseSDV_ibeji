@@ -26,35 +26,59 @@ const MQTT_CLIENT_ID: &str = "Speedometer_mood";
 
 #[derive(Clone, Debug)]
 pub struct VehicleData {
-    pub speed: watch::Receiver<sdv::vehicle::vehicle_speed::TYPE>,
-    pub mileage: watch::Receiver<sdv::vehicle::vehicle_mileage::TYPE>,
-    pub gear: watch::Receiver<sdv::vehicle::vehicle_gear::TYPE>,
-    pub fuel: watch::Receiver<sdv::vehicle::vehicle_fuel::TYPE>,
-    pub rpm: watch::Receiver<sdv::vehicle::vehicle_rpm::TYPE>,
+    pub speed: watch::Receiver<sdv::vehicle_v2::vehicle_speed::TYPE>,
+    pub mileage: watch::Receiver<sdv::vehicle_v2::vehicle_mileage::TYPE>,
+    pub gear: watch::Receiver<sdv::vehicle_v2::vehicle_gear::TYPE>,
+    pub fuel: watch::Receiver<sdv::vehicle_v2::vehicle_fuel::TYPE>,
+    pub rpm: watch::Receiver<sdv::vehicle_v2::vehicle_rpm::TYPE>,
+    pub wp_fl: watch::Receiver<sdv::vehicle_v2::vehicle_wheel_pressure_fl::TYPE>,
+    pub wp_fr: watch::Receiver<sdv::vehicle_v2::vehicle_wheel_pressure_fr::TYPE>,
+    pub wp_rl: watch::Receiver<sdv::vehicle_v2::vehicle_wheel_pressure_rl::TYPE>,
+    pub wp_rr: watch::Receiver<sdv::vehicle_v2::vehicle_wheel_pressure_rr::TYPE>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Property {
     #[serde(rename = "VehicleSpeed")]
-    vehicle_speed: sdv::vehicle::vehicle_speed::TYPE,
+    vehicle_speed: sdv::vehicle_v2::vehicle_speed::TYPE,
     #[serde(rename = "$metadata")]
     speed_metadata: Metadata,
     #[serde(rename = "VehicleMileage")]
-    vehicle_mileage: sdv::vehicle::vehicle_mileage::TYPE,
+    vehicle_mileage: sdv::vehicle_v2::vehicle_mileage::TYPE,
     #[serde(rename = "$metadata")]
     mileage_metadata: Metadata,
     #[serde(rename = "VehicleGear")]
-    vehicle_gear: sdv::vehicle::vehicle_gear::TYPE,
+    vehicle_gear: sdv::vehicle_v2::vehicle_gear::TYPE,
     #[serde(rename = "$metadata")]
     gear_metadata: Metadata,
     #[serde(rename = "VehicleFuel")]
-    vehicle_fuel: sdv::vehicle::vehicle_fuel::TYPE,
+    vehicle_fuel: sdv::vehicle_v2::vehicle_fuel::TYPE,
     #[serde(rename = "$metadata")]
     fuel_metadata: Metadata,
     #[serde(rename = "VehicleRpm")]
-    vehicle_rpm: sdv::vehicle::vehicle_rpm::TYPE,
+    vehicle_rpm: sdv::vehicle_v2::vehicle_rpm::TYPE,
     #[serde(rename = "$metadata")]
     rpm_metadata: Metadata,
+
+    #[serde(rename = "VehicleWheelPressureFL")]
+    vehicle_wheel_pressure_fl: sdv::vehicle_v2::vehicle_wheel_pressure_fl::TYPE,
+    #[serde(rename = "$metadata")]
+    wp_fl_metadata: Metadata,
+
+    #[serde(rename = "VehicleWheelPressureFR")]
+    vehicle_wheel_pressure_fr: sdv::vehicle_v2::vehicle_wheel_pressure_fr::TYPE,
+    #[serde(rename = "$metadata")]
+    wp_fr_metadata: Metadata,
+
+    #[serde(rename = "VehicleWheelPressureRL")]
+    vehicle_wheel_pressure_rl: sdv::vehicle_v2::vehicle_wheel_pressure_rl::TYPE,
+    #[serde(rename = "$metadata")]
+    wp_rl_metadata: Metadata,
+
+    #[serde(rename = "VehicleWheelPressureRR")]
+    vehicle_wheel_pressure_rr: sdv::vehicle_v2::vehicle_wheel_pressure_rr::TYPE,
+    #[serde(rename = "$metadata")]
+    wp_rr_metadata: Metadata,
 }
 
 /// Actions that are returned from the Pub Sub Service.
@@ -85,17 +109,26 @@ pub struct ProviderImpl {
 /// # Arguments
 /// * `vehicle_speed` - The vehicle speed value.
 fn create_property_json(data: &VehicleData) -> String {
-    let speed_metadata = Metadata { model: sdv::vehicle::vehicle_speed::ID.to_string() };
-    let mileage_metadata = Metadata { model: sdv::vehicle::vehicle_mileage::ID.to_string() };
-    let gear_metadata = Metadata { model: sdv::vehicle::vehicle_gear::ID.to_string() };
-    let fuel_metadata = Metadata { model: sdv::vehicle::vehicle_fuel::ID.to_string() };
-    let rpm_metadata = Metadata { model: sdv::vehicle::vehicle_rpm::ID.to_string() };
+    let speed_metadata = Metadata { model: sdv::vehicle_v2::vehicle_speed::ID.to_string() };
+    let mileage_metadata = Metadata { model: sdv::vehicle_v2::vehicle_mileage::ID.to_string() };
+    let gear_metadata = Metadata { model: sdv::vehicle_v2::vehicle_gear::ID.to_string() };
+    let fuel_metadata = Metadata { model: sdv::vehicle_v2::vehicle_fuel::ID.to_string() };
+    let rpm_metadata = Metadata { model: sdv::vehicle_v2::vehicle_rpm::ID.to_string() };
+    let wp_fl_metadata = Metadata { model: sdv::vehicle_v2::vehicle_wheel_pressure_fl::ID.to_string() };
+    let wp_fr_metadata = Metadata { model: sdv::vehicle_v2::vehicle_wheel_pressure_fr::ID.to_string() };
+    let wp_rl_metadata = Metadata { model: sdv::vehicle_v2::vehicle_wheel_pressure_rl::ID.to_string() };
+    let wp_rr_metadata = Metadata { model: sdv::vehicle_v2::vehicle_wheel_pressure_rr::ID.to_string() };
 
     let property: Property = Property { vehicle_speed: *data.speed.borrow(), speed_metadata,
                                         vehicle_mileage: *data.mileage.borrow(), mileage_metadata,
                                         vehicle_gear: *data.gear.borrow(), gear_metadata,
                                         vehicle_fuel: *data.fuel.borrow(), fuel_metadata,
-                                        vehicle_rpm: *data.rpm.borrow(), rpm_metadata };
+                                        vehicle_rpm: *data.rpm.borrow(), rpm_metadata,
+                                        vehicle_wheel_pressure_fl: *data.wp_fl.borrow(), wp_fl_metadata,
+                                        vehicle_wheel_pressure_fr: *data.wp_fr.borrow(), wp_fr_metadata,
+                                        vehicle_wheel_pressure_rl: *data.wp_rl.borrow(), wp_rl_metadata,
+                                        vehicle_wheel_pressure_rr: *data.wp_rr.borrow(), wp_rr_metadata
+                                     };
 
     serde_json::to_string(&property).unwrap()
 }
@@ -135,11 +168,15 @@ impl ProviderImpl {
         let mut entity_map = HashMap::new();
 
         // Insert entry for entity id's associated with provider.
-        entity_map.insert(sdv::vehicle::vehicle_speed::ID.to_string(), Vec::new());
-        entity_map.insert(sdv::vehicle::vehicle_mileage::ID.to_string(), Vec::new());
-        entity_map.insert(sdv::vehicle::vehicle_gear::ID.to_string(), Vec::new());
-        entity_map.insert(sdv::vehicle::vehicle_fuel::ID.to_string(), Vec::new());
-        entity_map.insert(sdv::vehicle::vehicle_rpm::ID.to_string(), Vec::new());
+        entity_map.insert(sdv::vehicle_v2::vehicle_speed::ID.to_string(), Vec::new());
+        entity_map.insert(sdv::vehicle_v2::vehicle_mileage::ID.to_string(), Vec::new());
+        entity_map.insert(sdv::vehicle_v2::vehicle_gear::ID.to_string(), Vec::new());
+        entity_map.insert(sdv::vehicle_v2::vehicle_fuel::ID.to_string(), Vec::new());
+        entity_map.insert(sdv::vehicle_v2::vehicle_rpm::ID.to_string(), Vec::new());
+        entity_map.insert(sdv::vehicle_v2::vehicle_wheel_pressure_fl::ID.to_string(), Vec::new());
+        entity_map.insert(sdv::vehicle_v2::vehicle_wheel_pressure_fr::ID.to_string(), Vec::new());
+        entity_map.insert(sdv::vehicle_v2::vehicle_wheel_pressure_rl::ID.to_string(), Vec::new());
+        entity_map.insert(sdv::vehicle_v2::vehicle_wheel_pressure_rr::ID.to_string(), Vec::new());
 
         // Create new instance.
         ProviderImpl { data_stream, min_interval_ms, entity_map: Arc::new(RwLock::new(entity_map)) }
@@ -209,12 +246,16 @@ impl ProviderImpl {
 
                 // Publish message to broker.
                 info!(
-                    "Publish to {topic} for {}, {}, {}, {}, {} with value {content}",
-                    sdv::vehicle::vehicle_speed::NAME,
-                    sdv::vehicle::vehicle_mileage::NAME,
-                    sdv::vehicle::vehicle_gear::NAME,
-                    sdv::vehicle::vehicle_fuel::NAME,
-                    sdv::vehicle::vehicle_rpm::NAME
+                    "Publish to {topic} for {}, {}, {}, {}, {} {} {} {} {} with value {content}",
+                    sdv::vehicle_v2::vehicle_speed::NAME,
+                    sdv::vehicle_v2::vehicle_mileage::NAME,
+                    sdv::vehicle_v2::vehicle_gear::NAME,
+                    sdv::vehicle_v2::vehicle_fuel::NAME,
+                    sdv::vehicle_v2::vehicle_rpm::NAME,
+                    sdv::vehicle_v2::vehicle_wheel_pressure_fl::NAME,
+                    sdv::vehicle_v2::vehicle_wheel_pressure_fr::NAME,
+                    sdv::vehicle_v2::vehicle_wheel_pressure_rl::NAME,
+                    sdv::vehicle_v2::vehicle_wheel_pressure_rr::NAME,
                 );
 
                 let msg = mqtt::Message::new(&topic, content, mqtt::types::QOS_1);
