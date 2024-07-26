@@ -133,28 +133,38 @@ fn create_property_json(data: &VehicleData) -> String {
     serde_json::to_string(&property).unwrap()
 }
 
-/// Establish a connection to a MQTT broker.
+/// Publish a message to a MQTT broker located.
 ///
 /// # Arguments
 /// `broker_uri` - The MQTT broker's URI.
-fn connect_to_broker(broker_uri: &str) -> mqtt::Client {
+/// `topic` - The topic to publish to.
+/// `content` - The message to publish.
+fn publish_message(broker_uri: &str, topic: &str, content: &str) -> Result<(), String> {
     let create_opts = mqtt::CreateOptionsBuilder::new()
         .server_uri(broker_uri)
         .client_id(MQTT_CLIENT_ID.to_string())
         .finalize();
 
     let client = mqtt::Client::new(create_opts)
-        .map_err(|err| format!("Failed to create the client due to '{err:?}'")).unwrap();
+        .map_err(|err| format!("Failed to create the client due to '{err:?}'"))?;
 
     let conn_opts = mqtt::ConnectOptionsBuilder::new()
         .keep_alive_interval(Duration::from_secs(30))
         .clean_session(true)
         .finalize();
-
     let _connect_response =
         client.connect(conn_opts).map_err(|err| format!("Failed to connect due to '{err:?}"));
 
-    return client;
+    let msg = mqtt::Message::new(topic, content, mqtt::types::QOS_1);
+    if let Err(err) = client.publish(msg) {
+        return Err(format!("Failed to publish message due to '{err:?}"));
+    }
+
+    if let Err(err) = client.disconnect(None) {
+        warn!("Failed to disconnect from topic '{topic}' on broker {broker_uri} due to {err:?}");
+    }
+
+    Ok(())
 }
 
 impl ProviderImpl {
@@ -221,28 +231,16 @@ impl ProviderImpl {
                 };
             }
 
-            let broker_uri = subscription_info.uri.clone();
-            let client = connect_to_broker(&broker_uri);
-
-            if !client.is_connected() {
-                warn!("Failed to conenct for topic '{topic}' on broker {broker_uri}");
-                return;
-            }
-
             loop {
                 // See if we need to shutdown.
                 if reciever.try_recv() == Err(mpsc::error::TryRecvError::Disconnected) {
                     info!("Shutdown thread for {topic}.");
-
-                    if let Err(err) = client.disconnect(None) {
-                        warn!("Failed to disconnect from topic '{topic}' on broker {broker_uri} due to {err:?}");
-                    }
-
                     return;
                 }
 
                 // Get data from stream at the current instant.
                 let content = create_property_json(&data_stream);
+                let broker_uri = subscription_info.uri.clone();
 
                 // Publish message to broker.
                 info!(
@@ -258,8 +256,7 @@ impl ProviderImpl {
                     sdv::vehicle_v2::vehicle_wheel_pressure_rr::NAME,
                 );
 
-                let msg = mqtt::Message::new(&topic, content, mqtt::types::QOS_1);
-                if let Err(err) = client.publish(msg) {
+                if let Err(err) = publish_message(&broker_uri, &topic, &content) {
                     warn!("Publish failed due to '{err:?}'");
                     break;
                 }
