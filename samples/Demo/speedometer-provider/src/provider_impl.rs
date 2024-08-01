@@ -142,7 +142,7 @@ fn create_property_json(data: &VehicleData) -> String {
 fn publish_message(broker_uri: &str, topic: &str, content: &str) -> Result<(), String> {
     let create_opts = mqtt::CreateOptionsBuilder::new()
         .server_uri(broker_uri)
-        .client_id(MQTT_CLIENT_ID.to_string())
+        .client_id(format!("{MQTT_CLIENT_ID}-{topic}"))
         .finalize();
 
     let client = mqtt::Client::new(create_opts)
@@ -150,14 +150,14 @@ fn publish_message(broker_uri: &str, topic: &str, content: &str) -> Result<(), S
 
     let conn_opts = mqtt::ConnectOptionsBuilder::new()
         .keep_alive_interval(Duration::from_secs(30))
-        .clean_session(true)
+        .clean_session(false)
         .finalize();
     let _connect_response =
         client.connect(conn_opts).map_err(|err| format!("Failed to connect due to '{err:?}"));
 
     let msg = mqtt::Message::new(topic, content, mqtt::types::QOS_1);
     if let Err(err) = client.publish(msg) {
-        return Err(format!("Failed to publish message due to '{err:?}"));
+        warn!("Failed to publish message due to '{err:?}  topic: '{topic}'");
     }
 
     if let Err(err) = client.disconnect(None) {
@@ -257,7 +257,7 @@ impl ProviderImpl {
                 );
 
                 if let Err(err) = publish_message(&broker_uri, &topic, &content) {
-                    warn!("Publish failed due to '{err:?}'");
+                    warn!("Publish failed due to '{err:?}'  topic: {topic}");
                     break;
                 }
 

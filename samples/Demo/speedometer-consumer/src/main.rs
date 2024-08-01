@@ -43,7 +43,7 @@ struct DataPacket {
 }
 
 const FREQUENCY_MS_FLAG: &str = "freq_ms=";
-const MQTT_CLIENT_ID: &str = "Speedometer_mood";
+const MQTT_CLIENT_ID: &str = "Speedometer_consumer";
 
 const RED_RGB_COLOR: u32 = 0xFF0000;   //    rgb(255, 0, 0)
 const GREEN_RGB_COLOR: u32 = 0x008000; //	rgb(0,128,0)
@@ -175,8 +175,6 @@ async fn receive_vehicle_data_updates(
     let client = mqtt::Client::new(create_opts)
         .map_err(|err| format!("Failed to create MQTT client due to '{err:?}'"))?;
 
-    let receiver = client.start_consuming();
-
     // Setup task to handle clean shutdown.
     let ctrlc_cli = client.clone();
     tokio::spawn(async move {
@@ -191,13 +189,15 @@ async fn receive_vehicle_data_updates(
         mqtt::MessageBuilder::new().topic("test").payload("Receiver lost connection").finalize();
 
     let conn_opts = mqtt::ConnectOptionsBuilder::new_v5()
-        .keep_alive_interval(Duration::from_secs(30))
+        .keep_alive_interval(Duration::from_secs(10))
         .clean_session(false)
         .will_message(lwt)
         .finalize();
 
     let _connect_response =
         client.connect(conn_opts).map_err(|err| format!("Failed to connect due to '{err:?}"));
+
+    let receiver = client.start_consuming();
 
     let mut _subscribe_response = client
         .subscribe(topic, mqtt::types::QOS_1)
