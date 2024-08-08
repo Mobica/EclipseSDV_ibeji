@@ -31,15 +31,19 @@ use std::str::FromStr;
 
 #[derive(Debug,Deserialize,Serialize)]
 struct DataPacket {
-    VehicleSpeed: sdv::vehicle::vehicle_speed::TYPE,
-    VehicleMileage: sdv::vehicle::vehicle_mileage::TYPE,
-    VehicleGear: sdv::vehicle::vehicle_gear::TYPE,
-    VehicleFuel: sdv::vehicle::vehicle_fuel::TYPE,
-    VehicleRpm: sdv::vehicle::vehicle_rpm::TYPE
+    VehicleSpeed: sdv::vehicle_v2::vehicle_speed::TYPE,
+    VehicleMileage: sdv::vehicle_v2::vehicle_mileage::TYPE,
+    VehicleGear: sdv::vehicle_v2::vehicle_gear::TYPE,
+    VehicleFuel: sdv::vehicle_v2::vehicle_fuel::TYPE,
+    VehicleRpm: sdv::vehicle_v2::vehicle_rpm::TYPE,
+    VehicleWheelPressureFL: sdv::vehicle_v2::vehicle_wheel_pressure_fl::TYPE,
+    VehicleWheelPressureFR: sdv::vehicle_v2::vehicle_wheel_pressure_fr::TYPE,
+    VehicleWheelPressureRL: sdv::vehicle_v2::vehicle_wheel_pressure_rl::TYPE,
+    VehicleWheelPressureRR: sdv::vehicle_v2::vehicle_wheel_pressure_rr::TYPE
 }
 
 const FREQUENCY_MS_FLAG: &str = "freq_ms=";
-const MQTT_CLIENT_ID: &str = "Speedometer_mood";
+const MQTT_CLIENT_ID: &str = "Speedometer_consumer";
 
 const RED_RGB_COLOR: u32 = 0xFF0000;   //    rgb(255, 0, 0)
 const GREEN_RGB_COLOR: u32 = 0x008000; //	rgb(0,128,0)
@@ -83,7 +87,7 @@ async fn get_vehicle_subscription_info(
         .map_err(|err| Status::from_error(err.into()))?;
 
     let request = Request::new(SubscriptionInfoRequest {
-        entity_id: sdv::vehicle::vehicle_speed::ID.to_string(),
+        entity_id: sdv::vehicle_v2::vehicle_speed::ID.to_string(),
         constraints,
     });
 
@@ -113,6 +117,10 @@ fn send_to_dashboard(data: DataPacket)
         dashboard_update::current_vehicle_gear = data.VehicleGear;
         dashboard_update::current_vehicle_fuel = data.VehicleFuel;
         dashboard_update::current_vehicle_rpm = data.VehicleRpm;
+        dashboard_update::current_vehicle_wheel_pressure_fl = data.VehicleWheelPressureFL;
+        dashboard_update::current_vehicle_wheel_pressure_fr = data.VehicleWheelPressureFR;
+        dashboard_update::current_vehicle_wheel_pressure_rl = data.VehicleWheelPressureRL;
+        dashboard_update::current_vehicle_wheel_pressure_rr = data.VehicleWheelPressureRR;
 
         #[cfg(target_arch = "aarch64")]
         {
@@ -167,8 +175,6 @@ async fn receive_vehicle_data_updates(
     let client = mqtt::Client::new(create_opts)
         .map_err(|err| format!("Failed to create MQTT client due to '{err:?}'"))?;
 
-    let receiver = client.start_consuming();
-
     // Setup task to handle clean shutdown.
     let ctrlc_cli = client.clone();
     tokio::spawn(async move {
@@ -183,13 +189,15 @@ async fn receive_vehicle_data_updates(
         mqtt::MessageBuilder::new().topic("test").payload("Receiver lost connection").finalize();
 
     let conn_opts = mqtt::ConnectOptionsBuilder::new_v5()
-        .keep_alive_interval(Duration::from_secs(30))
+        .keep_alive_interval(Duration::from_secs(10))
         .clean_session(false)
         .will_message(lwt)
         .finalize();
 
     let _connect_response =
         client.connect(conn_opts).map_err(|err| format!("Failed to connect due to '{err:?}"));
+
+    let receiver = client.start_consuming();
 
     let mut _subscribe_response = client
         .subscribe(topic, mqtt::types::QOS_1)
@@ -298,7 +306,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Retrieve the provider URI.
     let provider_endpoint_info = discover_digital_twin_provider_using_ibeji(
         &invehicle_digital_twin_uri,
-        sdv::vehicle::vehicle_speed::ID,
+        sdv::vehicle_v2::vehicle_speed::ID,
         digital_twin_protocol::GRPC,
         &[digital_twin_operation::MANAGEDSUBSCRIBE.to_string()],
     )

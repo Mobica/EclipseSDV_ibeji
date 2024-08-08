@@ -1,0 +1,72 @@
+{
+    "@context": ["dtmi:dtdl:context;2"],
+    "@type": "Interface",
+    "@id": "dtmi:sdv:vehicle;2",
+    "description": "Vehicle Interface.",
+    "contents": [
+     {
+      "@type": "Property",
+      "@id": "dtmi:sdv:vehicle:vehicle_rpm;2",
+      "name": "vehicle_rpm",
+      "description": "Vehicle rpm.",
+      "schema": "integer"
+     },
+     {
+      "@type": "Property",
+      "@id": "dtmi:sdv:vehicle:vehicle_fuel;2",
+      "name": "vehicle_fuel",
+      "description": "Vehicle fuel.",
+      "schema": "integer"
+     },
+     {
+      "@type": "Property",
+      "@id": "dtmi:sdv:vehicle:vehicle_mileage;2",
+      "name": "vehicle_mileage",
+      "description": "Vehicle mileage.",
+      "schema": "integer"
+     },
+     {
+      "@type": "Property",
+      "@id": "dtmi:sdv:vehicle:vehicle_gear;2",
+      "name": "vehicle_gear",
+      "description": "Vehicle gear.",
+      "schema": "integer"
+     },
+     {
+      "@type": "Property",
+      "@id": "dtmi:sdv:vehicle:vehicle_speed;2",
+      "name": "vehicle_speed",
+      "description": "Vehicle speed.",
+      "schema": "integer"
+     },
+     {
+      "@type": "Property",
+      "@id": "dtmi:sdv:vehicle:vehicle_wheel_pressure_fr;2",
+      "name": "vehicle_wheel_pressure_fr",
+      "description": "Vehicle Wheel Pressure (Front Right).",
+      "schema": "integer"
+     },
+     {
+      "@type": "Property",
+      "@id": "dtmi:sdv:vehicle:vehicle_wheel_pressure_fl;2",
+      "name": "vehicle_wheel_pressure_fl",
+      "description": "Vehicle Wheel Pressure (Front Left).",
+      "schema": "integer"
+     },
+     {
+      "@type": "Property",
+      "@id": "dtmi:sdv:vehicle:vehicle_wheel_pressure_rr;2",
+      "name": "vehicle_wheel_pressure_rr",
+      "description": "Vehicle Wheel Pressure (Rear Right).",
+      "schema": "integer"
+     },
+     {
+      "@type": "Property",
+      "@id": "dtmi:sdv:vehicle:vehicle_wheel_pressure_rl;2",
+      "name": "vehicle_wheel_pressure_rl",
+      "description": "Vehicle Wheel Pressure (Rear Left).",
+      "schema": "integer"
+     }
+    ]
+   }
+   
