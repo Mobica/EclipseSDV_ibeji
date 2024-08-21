@@ -5,6 +5,6 @@ name = "led_driver"
 version = "0.1.0"
 
 [build-dependencies]
-bindgen = "*"
+bindgen = "0.69.4"
 cc = { workspace = true }
 init_array = { workspace = true }
