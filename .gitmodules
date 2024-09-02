@@ -10,6 +10,7 @@
 [submodule "external/agemo"]
 	path = external/agemo
 	url = https://github.com/Mobica/EclipseSDV_Agemo
+	branch = demo
 [submodule "samples/Demo/led_driver/rpi_ws281x"]
 	path = samples/Demo/led_driver/rpi_ws281x
 	url = https://github.com/jgarff/rpi_ws281x.git
