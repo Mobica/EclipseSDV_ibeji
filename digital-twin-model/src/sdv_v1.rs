@@ -719,3 +719,110 @@ pub mod vehicle_v2 {
     }
 
 }
+
+pub mod vehicle_v3 {
+    pub const ID: &str = "dtmi:sdv:vehicle;3";
+    pub const DESCRIPTION: &str = "Vehicle Interface.";
+
+    pub mod vehicle_speed {
+        pub const ID: &str = "dtmi:sdv:vehicle:vehicle_speed;3";
+        pub const NAME: &str = "vehicle_speed";
+        pub const DESCRIPTION: &str = "Vehicle speed";
+
+        pub type TYPE = i32;
+    }
+
+    pub mod vehicle_gear {
+        pub const ID: &str = "dtmi:sdv:vehicle:vehicle_gear;3";
+        pub const NAME: &str = "vehicle_gear";
+        pub const DESCRIPTION: &str = "Vehicle gear";
+
+        pub type TYPE = i8;
+    }
+
+    pub mod vehicle_mileage {
+        pub const ID: &str = "dtmi:sdv:vehicle:vehicle_mileage;3";
+        pub const NAME: &str = "vehicle_mileage";
+        pub const DESCRIPTION: &str = "Vehicle mileage";
+
+        pub type TYPE = i32;
+    }
+
+    pub mod vehicle_fuel {
+        pub const ID: &str = "dtmi:sdv:vehicle:vehicle_fuel;3";
+        pub const NAME: &str = "vehicle_fuel";
+        pub const DESCRIPTION: &str = "Vehicle fuel";
+
+        pub type TYPE = i32;
+    }
+
+    pub mod vehicle_rpm {
+        pub const ID: &str = "dtmi:sdv:vehicle:vehicle_rpm;3";
+        pub const NAME: &str = "vehicle_rpm";
+        pub const DESCRIPTION: &str = "Vehicle rpm";
+
+        pub type TYPE = i32;
+    }
+
+    pub mod vehicle_wheel_pressure_fl {
+        pub const ID: &str = "dtmi:sdv:vehicle:vehicle_wheel_pressure_fl;3";
+        pub const NAME: &str = "vehicle_wheel_pressure_fl";
+        pub const DESCRIPTION: &str = "Vehicle wheel pressure Front Left";
+
+        pub type TYPE = f64;
+    }
+
+    pub mod vehicle_wheel_pressure_fr {
+        pub const ID: &str = "dtmi:sdv:vehicle:vehicle_wheel_pressure_fr;3";
+        pub const NAME: &str = "vehicle_wheel_pressure_fr";
+        pub const DESCRIPTION: &str = "Vehicle wheel pressure Front Right";
+
+        pub type TYPE = f64;
+    }
+
+    pub mod vehicle_wheel_pressure_rl {
+        pub const ID: &str = "dtmi:sdv:vehicle:vehicle_wheel_pressure_rl;3";
+        pub const NAME: &str = "vehicle_wheel_pressure_rl";
+        pub const DESCRIPTION: &str = "Vehicle wheel pressure Rear Left";
+
+        pub type TYPE = f64;
+    }
+
+    pub mod vehicle_wheel_pressure_rr {
+        pub const ID: &str = "dtmi:sdv:vehicle:vehicle_wheel_pressure_rr;3";
+        pub const NAME: &str = "vehicle_wheel_pressure_rr";
+        pub const DESCRIPTION: &str = "Vehicle wheel pressure Rear Right";
+
+        pub type TYPE = f64;
+    }
+
+    pub mod vehicle_identification {
+        pub const ID: &str = "dtmi:sdv:vehicle:vehicle_identification;3";
+        pub const NAME: &str = "vehicle_identification.";
+        pub const DESCRIPTION: &str = "Vehicle Identification";
+
+        pub mod vin {
+            pub const ID: &str = "dtmi:sdv:vehicle:vehicle_identification:vin;3";
+            pub const NAME: &str = "vin";
+            pub const DESCRIPTION: &str = "Vehicle Identification Number.";
+
+            pub type TYPE = String;
+        }
+
+        #[derive(derivative::Derivative)]
+        #[derivative(Default)]
+        #[derive(serde_derive::Serialize, serde_derive::Deserialize, Debug)]
+        pub struct TYPE {
+            #[serde(rename = "@context")]
+            #[derivative(Default(value = "crate::sdv_v1::context()"))]
+            pub context: Vec<String>,
+            #[serde(rename = "@type")]
+            #[derivative(Default(
+                value = "crate::sdv_v1::vehicle::vehicle_identification::ID.to_string()"
+            ))]
+            pub model_id: String,
+            pub vin: crate::sdv_v1::vehicle::vehicle_identification::vin::TYPE,
+        }
+    }
+
+}

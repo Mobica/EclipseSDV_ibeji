@@ -30,15 +30,16 @@ use tokio::task::JoinHandle;
 use uuid::Uuid;
 
 const MQTT_CLIENT_ID: &str = "CAN_Speed_updates";
+const WHEEL_PRESSURE_OK_LEVEL: i32 = 2400;
 pub static mut g_vehicle_speed: i32 = 75;
 pub static mut g_vehicle_mileage: i32 = 0;
 pub static mut g_vehicle_gear: i8 = 1;
 pub static mut g_vehicle_fuel: i32 = 0;
 pub static mut g_vehicle_rpm: i32 = 0;
-pub static mut g_vehicle_wp_fl: i32 = 11;
-pub static mut g_vehicle_wp_fr: i32 = 12;
-pub static mut g_vehicle_wp_rl: i32 = 21;
-pub static mut g_vehicle_wp_rr: i32 = 22;
+pub static mut g_vehicle_wp_fl: i32 = WHEEL_PRESSURE_OK_LEVEL;
+pub static mut g_vehicle_wp_fr: i32 = WHEEL_PRESSURE_OK_LEVEL;
+pub static mut g_vehicle_wp_rl: i32 = WHEEL_PRESSURE_OK_LEVEL;
+pub static mut g_vehicle_wp_rr: i32 = WHEEL_PRESSURE_OK_LEVEL;
 
 /// Register the vehicle speed property's endpoint.
 ///
@@ -57,65 +58,65 @@ async fn register_entities(
     };
 
     let vehicle_speed_entity_access_info = EntityAccessInfo {
-        name: sdv::vehicle_v2::vehicle_speed::NAME.to_string(),
-        id: sdv::vehicle_v2::vehicle_speed::ID.to_string(),
-        description: sdv::vehicle_v2::vehicle_speed::DESCRIPTION.to_string(),
+        name: sdv::vehicle_v3::vehicle_speed::NAME.to_string(),
+        id: sdv::vehicle_v3::vehicle_speed::ID.to_string(),
+        description: sdv::vehicle_v3::vehicle_speed::DESCRIPTION.to_string(),
         endpoint_info_list: vec![endpoint_info.clone()],
     };
 
     let vehicle_mileage_entity_access_info = EntityAccessInfo {
-        name: sdv::vehicle_v2::vehicle_mileage::NAME.to_string(),
-        id: sdv::vehicle_v2::vehicle_mileage::ID.to_string(),
-        description: sdv::vehicle_v2::vehicle_mileage::DESCRIPTION.to_string(),
+        name: sdv::vehicle_v3::vehicle_mileage::NAME.to_string(),
+        id: sdv::vehicle_v3::vehicle_mileage::ID.to_string(),
+        description: sdv::vehicle_v3::vehicle_mileage::DESCRIPTION.to_string(),
         endpoint_info_list: vec![endpoint_info.clone()],
     };
 
     let vehicle_gear_entity_access_info = EntityAccessInfo {
-        name: sdv::vehicle_v2::vehicle_gear::NAME.to_string(),
-        id: sdv::vehicle_v2::vehicle_gear::ID.to_string(),
-        description: sdv::vehicle_v2::vehicle_gear::DESCRIPTION.to_string(),
+        name: sdv::vehicle_v3::vehicle_gear::NAME.to_string(),
+        id: sdv::vehicle_v3::vehicle_gear::ID.to_string(),
+        description: sdv::vehicle_v3::vehicle_gear::DESCRIPTION.to_string(),
         endpoint_info_list: vec![endpoint_info.clone()],
     };
 
     let vehicle_fuel_entity_access_info = EntityAccessInfo {
-        name: sdv::vehicle_v2::vehicle_fuel::NAME.to_string(),
-        id: sdv::vehicle_v2::vehicle_fuel::ID.to_string(),
-        description: sdv::vehicle_v2::vehicle_fuel::DESCRIPTION.to_string(),
+        name: sdv::vehicle_v3::vehicle_fuel::NAME.to_string(),
+        id: sdv::vehicle_v3::vehicle_fuel::ID.to_string(),
+        description: sdv::vehicle_v3::vehicle_fuel::DESCRIPTION.to_string(),
         endpoint_info_list: vec![endpoint_info.clone()],
     };
 
     let vehicle_rpm_entity_access_info = EntityAccessInfo {
-        name: sdv::vehicle_v2::vehicle_rpm::NAME.to_string(),
-        id: sdv::vehicle_v2::vehicle_rpm::ID.to_string(),
-        description: sdv::vehicle_v2::vehicle_rpm::DESCRIPTION.to_string(),
+        name: sdv::vehicle_v3::vehicle_rpm::NAME.to_string(),
+        id: sdv::vehicle_v3::vehicle_rpm::ID.to_string(),
+        description: sdv::vehicle_v3::vehicle_rpm::DESCRIPTION.to_string(),
         endpoint_info_list: vec![endpoint_info.clone()],
     };
 
     let vehicle_wheel_pressure_fl_entity_access_info = EntityAccessInfo {
-        name: sdv::vehicle_v2::vehicle_wheel_pressure_fl::NAME.to_string(),
-        id: sdv::vehicle_v2::vehicle_wheel_pressure_fl::ID.to_string(),
-        description: sdv::vehicle_v2::vehicle_wheel_pressure_fl::DESCRIPTION.to_string(),
+        name: sdv::vehicle_v3::vehicle_wheel_pressure_fl::NAME.to_string(),
+        id: sdv::vehicle_v3::vehicle_wheel_pressure_fl::ID.to_string(),
+        description: sdv::vehicle_v3::vehicle_wheel_pressure_fl::DESCRIPTION.to_string(),
         endpoint_info_list: vec![endpoint_info.clone()],
     };
 
     let vehicle_wheel_pressure_fr_entity_access_info = EntityAccessInfo {
-        name: sdv::vehicle_v2::vehicle_wheel_pressure_fr::NAME.to_string(),
-        id: sdv::vehicle_v2::vehicle_wheel_pressure_fr::ID.to_string(),
-        description: sdv::vehicle_v2::vehicle_wheel_pressure_fr::DESCRIPTION.to_string(),
+        name: sdv::vehicle_v3::vehicle_wheel_pressure_fr::NAME.to_string(),
+        id: sdv::vehicle_v3::vehicle_wheel_pressure_fr::ID.to_string(),
+        description: sdv::vehicle_v3::vehicle_wheel_pressure_fr::DESCRIPTION.to_string(),
         endpoint_info_list: vec![endpoint_info.clone()],
     };
 
     let vehicle_wheel_pressure_rl_entity_access_info = EntityAccessInfo {
-        name: sdv::vehicle_v2::vehicle_wheel_pressure_rl::NAME.to_string(),
-        id: sdv::vehicle_v2::vehicle_wheel_pressure_rl::ID.to_string(),
-        description: sdv::vehicle_v2::vehicle_wheel_pressure_rl::DESCRIPTION.to_string(),
+        name: sdv::vehicle_v3::vehicle_wheel_pressure_rl::NAME.to_string(),
+        id: sdv::vehicle_v3::vehicle_wheel_pressure_rl::ID.to_string(),
+        description: sdv::vehicle_v3::vehicle_wheel_pressure_rl::DESCRIPTION.to_string(),
         endpoint_info_list: vec![endpoint_info.clone()],
     };
 
     let vehicle_wheel_pressure_rr_entity_access_info = EntityAccessInfo {
-        name: sdv::vehicle_v2::vehicle_wheel_pressure_rr::NAME.to_string(),
-        id: sdv::vehicle_v2::vehicle_wheel_pressure_rr::ID.to_string(),
-        description: sdv::vehicle_v2::vehicle_wheel_pressure_rr::DESCRIPTION.to_string(),
+        name: sdv::vehicle_v3::vehicle_wheel_pressure_rr::NAME.to_string(),
+        id: sdv::vehicle_v3::vehicle_wheel_pressure_rr::ID.to_string(),
+        description: sdv::vehicle_v3::vehicle_wheel_pressure_rr::DESCRIPTION.to_string(),
         endpoint_info_list: vec![endpoint_info.clone()],
     };
 
@@ -271,13 +272,13 @@ fn start_vehicle_rpm_data_stream(min_interval_ms: u64) -> watch::Receiver<i32> {
 ///
 /// # Arguments
 /// `min_interval_ms` - minimum frequency for data stream.
-fn start_vehicle_wheel_pressure_fl_data_stream(min_interval_ms: u64) -> watch::Receiver<i32> {
+fn start_vehicle_wheel_pressure_fl_data_stream(min_interval_ms: u64) -> watch::Receiver<f64> {
     debug!("Starting the vehicle wheel pressure data stream.");
-    let (sender, receiver) = watch::channel(8);
+    let (sender, receiver) = watch::channel(0.0);
     tokio::spawn(async move {
         loop {
             unsafe {
-                if let Err(err) = sender.send(g_vehicle_wp_fl) {
+                if let Err(err) = sender.send((g_vehicle_wp_fl as f64) / 1000.0) {
                     warn!("Failed to get new value due to '{err:?}'");
                     break;
                 }
@@ -292,13 +293,13 @@ fn start_vehicle_wheel_pressure_fl_data_stream(min_interval_ms: u64) -> watch::R
     receiver
 }
 
-fn start_vehicle_wheel_pressure_fr_data_stream(min_interval_ms: u64) -> watch::Receiver<i32> {
+fn start_vehicle_wheel_pressure_fr_data_stream(min_interval_ms: u64) -> watch::Receiver<f64> {
     debug!("Starting the vehicle wheel pressure data stream.");
-    let (sender, receiver) = watch::channel(8);
+    let (sender, receiver) = watch::channel(0.0);
     tokio::spawn(async move {
         loop {
             unsafe {
-                if let Err(err) = sender.send(g_vehicle_wp_fr) {
+                if let Err(err) = sender.send((g_vehicle_wp_fr as f64) / 1000.0) {
                     warn!("Failed to get new value due to '{err:?}'");
                     break;
                 }
@@ -313,13 +314,13 @@ fn start_vehicle_wheel_pressure_fr_data_stream(min_interval_ms: u64) -> watch::R
     receiver
 }
 
-fn start_vehicle_wheel_pressure_rl_data_stream(min_interval_ms: u64) -> watch::Receiver<i32> {
+fn start_vehicle_wheel_pressure_rl_data_stream(min_interval_ms: u64) -> watch::Receiver<f64> {
     debug!("Starting the vehicle wheel pressure data stream.");
-    let (sender, receiver) = watch::channel(8);
+    let (sender, receiver) = watch::channel(0.0);
     tokio::spawn(async move {
         loop {
             unsafe {
-                if let Err(err) = sender.send(g_vehicle_wp_rl) {
+                if let Err(err) = sender.send((g_vehicle_wp_rl as f64) / 1000.0) {
                     warn!("Failed to get new value due to '{err:?}'");
                     break;
                 }
@@ -334,13 +335,13 @@ fn start_vehicle_wheel_pressure_rl_data_stream(min_interval_ms: u64) -> watch::R
     receiver
 }
 
-fn start_vehicle_wheel_pressure_rr_data_stream(min_interval_ms: u64) -> watch::Receiver<i32> {
+fn start_vehicle_wheel_pressure_rr_data_stream(min_interval_ms: u64) -> watch::Receiver<f64> {
     debug!("Starting the vehicle wheel pressure data stream.");
-    let (sender, receiver) = watch::channel(8);
+    let (sender, receiver) = watch::channel(0.0);
     tokio::spawn(async move {
         loop {
             unsafe {
-                if let Err(err) = sender.send(g_vehicle_wp_rr) {
+                if let Err(err) = sender.send((g_vehicle_wp_rr as f64) / 1000.0) {
                     warn!("Failed to get new value due to '{err:?}'");
                     break;
                 }
