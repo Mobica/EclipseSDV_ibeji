@@ -10,27 +10,27 @@ use digital_twin_model::sdv_v1 as sdv;
 const PING: Token = Token(1);
 const PING_INTERVAL: u64 = 300;
 
-pub static mut current_vehicle_speed: sdv::vehicle_v2::vehicle_speed::TYPE = 0;
-pub static mut current_vehicle_mileage: sdv::vehicle_v2::vehicle_mileage::TYPE = 0;
-pub static mut current_vehicle_gear: sdv::vehicle_v2::vehicle_gear::TYPE = 0;
-pub static mut current_vehicle_fuel: sdv::vehicle_v2::vehicle_fuel::TYPE = 0;
-pub static mut current_vehicle_rpm: sdv::vehicle_v2::vehicle_rpm::TYPE = 0;
-pub static mut current_vehicle_wheel_pressure_fl: sdv::vehicle_v2::vehicle_wheel_pressure_fl::TYPE = 0;
-pub static mut current_vehicle_wheel_pressure_fr: sdv::vehicle_v2::vehicle_wheel_pressure_fr::TYPE = 0;
-pub static mut current_vehicle_wheel_pressure_rl: sdv::vehicle_v2::vehicle_wheel_pressure_rl::TYPE = 0;
-pub static mut current_vehicle_wheel_pressure_rr: sdv::vehicle_v2::vehicle_wheel_pressure_rr::TYPE = 0;
+pub static mut current_vehicle_speed: sdv::vehicle_v3::vehicle_speed::TYPE = 0;
+pub static mut current_vehicle_mileage: sdv::vehicle_v3::vehicle_mileage::TYPE = 0;
+pub static mut current_vehicle_gear: sdv::vehicle_v3::vehicle_gear::TYPE = 0;
+pub static mut current_vehicle_fuel: sdv::vehicle_v3::vehicle_fuel::TYPE = 0;
+pub static mut current_vehicle_rpm: sdv::vehicle_v3::vehicle_rpm::TYPE = 0;
+pub static mut current_vehicle_wheel_pressure_fl: sdv::vehicle_v3::vehicle_wheel_pressure_fl::TYPE = 0.0;
+pub static mut current_vehicle_wheel_pressure_fr: sdv::vehicle_v3::vehicle_wheel_pressure_fr::TYPE = 0.0;
+pub static mut current_vehicle_wheel_pressure_rl: sdv::vehicle_v3::vehicle_wheel_pressure_rl::TYPE = 0.0;
+pub static mut current_vehicle_wheel_pressure_rr: sdv::vehicle_v3::vehicle_wheel_pressure_rr::TYPE = 0.0;
 
 #[derive(Debug,Deserialize,Serialize)]
 struct VehicleState {
-    speed: sdv::vehicle_v2::vehicle_speed::TYPE,
-    mileage: sdv::vehicle_v2::vehicle_mileage::TYPE,
-    gear:sdv::vehicle_v2::vehicle_gear::TYPE,
-    fuel: sdv::vehicle_v2::vehicle_fuel::TYPE,
-    rpm: sdv::vehicle_v2::vehicle_rpm::TYPE,
-    wp_fl: sdv::vehicle_v2::vehicle_wheel_pressure_fl::TYPE,
-    wp_fr: sdv::vehicle_v2::vehicle_wheel_pressure_fr::TYPE,
-    wp_rl: sdv::vehicle_v2::vehicle_wheel_pressure_rl::TYPE,
-    wp_rr: sdv::vehicle_v2::vehicle_wheel_pressure_rr::TYPE
+    speed: sdv::vehicle_v3::vehicle_speed::TYPE,
+    mileage: sdv::vehicle_v3::vehicle_mileage::TYPE,
+    gear:sdv::vehicle_v3::vehicle_gear::TYPE,
+    fuel: sdv::vehicle_v3::vehicle_fuel::TYPE,
+    rpm: sdv::vehicle_v3::vehicle_rpm::TYPE,
+    wp_fl: sdv::vehicle_v3::vehicle_wheel_pressure_fl::TYPE,
+    wp_fr: sdv::vehicle_v3::vehicle_wheel_pressure_fr::TYPE,
+    wp_rl: sdv::vehicle_v3::vehicle_wheel_pressure_rl::TYPE,
+    wp_rr: sdv::vehicle_v3::vehicle_wheel_pressure_rr::TYPE
 }
 
 pub async fn update_dashboard() -> Result<JoinHandle<()>, String>
