@@ -257,10 +257,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Speedometer mood lightning Consumer has started.");
 
     #[cfg(target_arch = "aarch64")]
+    let mut display: led_driver::Display = Default::default();
+
+    #[cfg(target_arch = "aarch64")]
     {
         const DEFAULT_LED_COUNT: i32 = 8;
         const DEFAULT_LED_DELAY_MS: u64 = 100;
-        let mut display: led_driver::Display = Default::default();
         display.init();
 
         let led_count = get_cmd_arg(LED_COUNT_FLAG.to_string(), DEFAULT_LED_COUNT);
